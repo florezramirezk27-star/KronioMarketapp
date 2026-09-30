@@ -1,13 +1,16 @@
 {
-    "name": "kronio_app",
-    "short_name": "kronio_app",
+    "name": "Kronio Market",
+    "short_name": "Kronio",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFF7ED",
+    "theme_color": "#EA580C",
+    "description": "Kronio Market - tu tienda de confianza. Catalogo de productos con busqueda, filtros y carrito.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "lang": "es",
+    "dir": "ltr",
+    "categories": ["shopping", "lifestyle"],
     "icons": [
         {
             "src": "icons/Icon-192.png",

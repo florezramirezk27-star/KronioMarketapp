@@ -60,7 +60,10 @@ void main() {
 
   group('Product descuentos', () {
     test('detecta descuento cuando oldPrice es mayor', () {
-      final product = Product.fromJson({'price': '90000', 'oldPrice': '120000'});
+      final product = Product.fromJson({
+        'price': '90000',
+        'oldPrice': '120000',
+      });
 
       expect(product.hasDiscount, isTrue);
       expect(product.discountPercent, 25);
@@ -99,8 +102,7 @@ void main() {
     });
 
     test('detecta stock bajo cerca del umbral', () {
-      final product =
-          Product.fromJson({'stock': 3, 'lowStockThreshold': 5});
+      final product = Product.fromJson({'stock': 3, 'lowStockThreshold': 5});
 
       expect(product.outOfStock, isFalse);
       expect(product.lowStock, isTrue);
@@ -108,8 +110,7 @@ void main() {
     });
 
     test('no marca stock bajo si esta por encima del umbral', () {
-      final product =
-          Product.fromJson({'stock': 50, 'lowStockThreshold': 5});
+      final product = Product.fromJson({'stock': 50, 'lowStockThreshold': 5});
 
       expect(product.lowStock, isFalse);
     });
@@ -132,7 +133,10 @@ void main() {
     });
 
     test('cae a la imagen principal si no hay galeria', () {
-      final product = Product.fromJson({'image': 'a.jpg', 'gallery': <String>[]});
+      final product = Product.fromJson({
+        'image': 'a.jpg',
+        'gallery': <String>[],
+      });
 
       expect(product.displayImages, ['a.jpg']);
     });

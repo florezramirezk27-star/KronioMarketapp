@@ -54,10 +54,7 @@ class _Root extends StatelessWidget {
         if (!snapshot.hasData) {
           return const BrandSplash();
         }
-        return CartScope(
-          cart: snapshot.data!,
-          child: const HomeScreen(),
-        );
+        return CartScope(cart: snapshot.data!, child: const HomeScreen());
       },
     );
   }
@@ -88,10 +85,7 @@ class BrandSplash extends StatelessWidget {
             SizedBox(height: 8),
             Text(
               'Tu tienda de confianza',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
             SizedBox(height: 40),
             SizedBox(

@@ -9,11 +9,8 @@ import '../services/cart_service.dart';
 /// constructor a cada pantalla, los widgets que lo necesitan lo piden con
 /// `CartScope.of(context)` y se reconstruyen solos.
 class CartScope extends InheritedNotifier<CartService> {
-  const CartScope({
-    super.key,
-    required CartService cart,
-    required super.child,
-  }) : super(notifier: cart);
+  const CartScope({super.key, required CartService cart, required super.child})
+    : super(notifier: cart);
 
   /// Obtiene el carrito. Lanza en debug si no hay [CartScope] en el arbol, que
   /// casi siempre significa que la pantalla se abrio fuera del arbol principal.

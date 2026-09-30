@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'app_colors.dart';
 
 /// Tema de Kronio Market.
@@ -16,18 +17,22 @@ class AppTheme {
   static ThemeData _build(Brightness brightness) {
     final isLight = brightness == Brightness.light;
 
-    final colorScheme =
-        ColorScheme.fromSeed(seedColor: AppColors.primary, brightness: brightness);
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: brightness,
+    );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor:
-          isLight ? AppColors.surfaceLight : const Color(0xFF17130F),
+      scaffoldBackgroundColor: isLight
+          ? AppColors.surfaceLight
+          : const Color(0xFF17130F),
       appBarTheme: AppBarTheme(
         backgroundColor: isLight ? Colors.white : const Color(0xFF1F1A16),
-        foregroundColor:
-            isLight ? AppColors.textPrimary : const Color(0xFFF9FAFB),
+        foregroundColor: isLight
+            ? AppColors.textPrimary
+            : const Color(0xFFF9FAFB),
         elevation: 0,
         scrolledUnderElevation: 1,
         centerTitle: false,
@@ -45,10 +50,7 @@ class AppTheme {
           // Minimo 48dp para cumplir el objetivo tactil de Material.
           minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          textStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -64,8 +66,10 @@ class AppTheme {
         fillColor: isLight
             ? AppColors.surfaceLight
             : Colors.white.withValues(alpha: 0.06),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: AppColors.border),
@@ -80,8 +84,9 @@ class AppTheme {
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor:
-            isLight ? Colors.white : Colors.white.withValues(alpha: 0.08),
+        backgroundColor: isLight
+            ? Colors.white
+            : Colors.white.withValues(alpha: 0.08),
         selectedColor: AppColors.primary,
         labelStyle: TextStyle(
           fontSize: 13,
@@ -89,9 +94,7 @@ class AppTheme {
         ),
         secondaryLabelStyle: const TextStyle(color: Colors.white),
         side: BorderSide(color: AppColors.border),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         showCheckmark: false,
       ),
       dividerTheme: DividerThemeData(
@@ -107,12 +110,11 @@ class AppTheme {
       // pisarse entre si, y los saca de la barra de navegacion inferior.
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor:
-            isLight ? const Color(0xFF111827) : const Color(0xFF374151),
+        backgroundColor: isLight
+            ? const Color(0xFF111827)
+            : const Color(0xFF374151),
         contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       tabBarTheme: const TabBarThemeData(
         labelColor: AppColors.primary,

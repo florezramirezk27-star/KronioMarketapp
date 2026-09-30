@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <!-- Splash de arranque: fondo naranja-50 de la marca, en vez del blanco
+         genérico de la plantilla de Flutter. Matchea con BrandSplash en
+         lib/main.dart para que no haya un salto de color al iniciar. -->
+    <item android:drawable="@color/kronio_surface_light" />
 </layer-list>

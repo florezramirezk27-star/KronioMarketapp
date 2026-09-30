@@ -15,12 +15,12 @@ import 'api_exception.dart';
 /// duplicar clientes HTTP.
 class ApiService {
   ApiService({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
-        _ownsClient = client == null,
-        baseUrl = (baseUrl ?? AppConfig.apiBaseUrl).replaceAll(
-          RegExp(r'/+$'),
-          '',
-        );
+    : _client = client ?? http.Client(),
+      _ownsClient = client == null,
+      baseUrl = (baseUrl ?? AppConfig.apiBaseUrl).replaceAll(
+        RegExp(r'/+$'),
+        '',
+      );
 
   final http.Client _client;
 
@@ -30,9 +30,7 @@ class ApiService {
   final String baseUrl;
 
   /// Headers comunes.
-  Map<String, String> get _headers => const {
-        'Accept': 'application/json',
-      };
+  Map<String, String> get _headers => const {'Accept': 'application/json'};
 
   /// Libera el cliente HTTP. Solo hay que llamarlo si se creo internamente.
   void dispose() {
@@ -123,11 +121,7 @@ class ApiService {
     }
 
     if (response.statusCode != 200) {
-      throw mapStatusCode(
-        response.statusCode,
-        uri: uri,
-        body: response.body,
-      );
+      throw mapStatusCode(response.statusCode, uri: uri, body: response.body);
     }
 
     try {
@@ -186,9 +180,7 @@ class PaginatedResult<T> {
       }
       rawList = items;
       page = _asInt(body['page']) ?? 1;
-      total = _asInt(body['total']) ??
-          _asInt(body['Count']) ??
-          rawList.length;
+      total = _asInt(body['total']) ?? _asInt(body['Count']) ?? rawList.length;
       totalPagesSent = _asInt(body['totalPages']);
       totalPages = totalPagesSent ?? 1;
     } else {
@@ -220,9 +212,9 @@ class PaginatedResult<T> {
   }
 
   static int? _asInt(dynamic value) => switch (value) {
-        int v => v,
-        num v => v.toInt(),
-        String v => int.tryParse(v),
-        _ => null,
-      };
+    int v => v,
+    num v => v.toInt(),
+    String v => int.tryParse(v),
+    _ => null,
+  };
 }

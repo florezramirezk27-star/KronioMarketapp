@@ -85,36 +85,36 @@ class Product {
   /// subtotal sin red. El precio queda congelado en el momento de agregar: por
   /// eso el carrito hay que revalidarlo contra el servidor antes de cobrar.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'slug': slug,
-        'price': price,
-        'oldPrice': oldPrice,
-        'image': image,
-        'stock': stock,
-        'description': description,
-      };
+    'id': id,
+    'name': name,
+    'slug': slug,
+    'price': price,
+    'oldPrice': oldPrice,
+    'image': image,
+    'stock': stock,
+    'description': description,
+  };
 
   /// Copia con stock actualizado. Se usa al revalidar el carrito contra el
   /// backend sin volver a pedir todo el producto.
   Product withStock(int newStock) => Product(
-        id: id,
-        name: name,
-        slug: slug,
-        description: description,
-        price: price,
-        oldPrice: oldPrice,
-        image: image,
-        gallery: gallery,
-        stock: newStock,
-        lowStockThreshold: lowStockThreshold,
-        active: active,
-        categoryId: categoryId,
-        category: category,
-        dropiProductId: dropiProductId,
-        customCode: customCode,
-        video: video,
-      );
+    id: id,
+    name: name,
+    slug: slug,
+    description: description,
+    price: price,
+    oldPrice: oldPrice,
+    image: image,
+    gallery: gallery,
+    stock: newStock,
+    lowStockThreshold: lowStockThreshold,
+    active: active,
+    categoryId: categoryId,
+    category: category,
+    dropiProductId: dropiProductId,
+    customCode: customCode,
+    video: video,
+  );
 
   bool get hasDiscount => oldPrice != null && oldPrice! > price;
 

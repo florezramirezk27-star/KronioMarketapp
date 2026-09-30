@@ -35,9 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openSearch() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const SearchScreen()),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const SearchScreen()));
   }
 
   @override
@@ -83,10 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onSearch: _openSearch,
               onOpenCategory: (id) => _controller.setCategory(id),
             ),
-            _CatalogTab(
-              controller: _controller,
-              onSearch: _openSearch,
-            ),
+            _CatalogTab(controller: _controller, onSearch: _openSearch),
           ],
         ),
       ),
@@ -96,10 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 /// Pestana de catalogo completo con filtro por categoria.
 class _CatalogTab extends StatelessWidget {
-  const _CatalogTab({
-    required this.controller,
-    required this.onSearch,
-  });
+  const _CatalogTab({required this.controller, required this.onSearch});
 
   final CatalogController controller;
   final VoidCallback onSearch;
@@ -110,11 +103,7 @@ class _CatalogTab extends StatelessWidget {
       children: [
         _SearchField(onTap: onSearch),
         CategoryChips(controller: controller),
-        Expanded(
-          child: ProductGrid(
-            controller: controller,
-          ),
-        ),
+        Expanded(child: ProductGrid(controller: controller)),
       ],
     );
   }

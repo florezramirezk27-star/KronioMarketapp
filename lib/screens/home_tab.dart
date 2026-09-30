@@ -34,7 +34,8 @@ class HomeTab extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (controller.status == LoadStatus.error && controller.products.isEmpty) {
+        if (controller.status == LoadStatus.error &&
+            controller.products.isEmpty) {
           return CatalogErrorView(controller: controller);
         }
 
@@ -67,8 +68,9 @@ class _HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categories =
-        controller.categories.where((c) => c.productCount > 0).toList();
+    final categories = controller.categories
+        .where((c) => c.productCount > 0)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,10 +90,7 @@ class _HomeHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _CategoriesStrip(
-          categories: categories,
-          onTap: onOpenCategory,
-        ),
+        _CategoriesStrip(categories: categories, onTap: onOpenCategory),
         const SizedBox(height: 24),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16),
@@ -126,10 +125,8 @@ class _WelcomeBanner extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Bienvenido a Kronio',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
@@ -155,9 +152,8 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(context).textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
         ),
         if (trailing != null)
           Text(

@@ -57,8 +57,7 @@ class CartService extends ChangeNotifier {
           final rawProduct = map['product'];
           if (rawProduct is! Map) continue;
 
-          final product =
-              Product.fromJson(rawProduct.cast<String, dynamic>());
+          final product = Product.fromJson(rawProduct.cast<String, dynamic>());
           final quantity = (map['quantity'] as num?)?.toInt() ?? 0;
 
           // Se descarta lo invalido: cantidad <= 0, o producto sin id.
@@ -86,8 +85,7 @@ class CartService extends ChangeNotifier {
 
     final existing = _items[product.id];
     if (existing != null) {
-      existing.quantity =
-          _clampQuantity(existing.quantity + quantity, product);
+      existing.quantity = _clampQuantity(existing.quantity + quantity, product);
     } else {
       _items[product.id] = CartItem(
         product: product,
@@ -145,9 +143,7 @@ class CartService extends ChangeNotifier {
   /// Reduce las cantidades que superan el stock y elimina los productos que se
   /// quedaron sin existencias. Devuelve un resumen de lo que cambio, para poder
   /// avisarle al usuario en vez de alterar el carrito en silencio.
-  Future<CartSyncResult> revalidateStock(
-    List<Product> serverProducts,
-  ) async {
+  Future<CartSyncResult> revalidateStock(List<Product> serverProducts) async {
     if (_items.isEmpty) return const CartSyncResult();
 
     final byId = {for (final p in serverProducts) p.id: p};
@@ -192,17 +188,12 @@ class CartService extends ChangeNotifier {
       await _persist();
     }
 
-    return CartSyncResult(
-      reducedQuantities: reduced,
-      removedProducts: removed,
-    );
+    return CartSyncResult(reducedQuantities: reduced, removedProducts: removed);
   }
 
   int _clampQuantity(int quantity, Product product) {
-    final byStock =
-        product.stock > 0 ? product.stock : maxQuantityPerItem;
-    final limit =
-        byStock < maxQuantityPerItem ? byStock : maxQuantityPerItem;
+    final byStock = product.stock > 0 ? product.stock : maxQuantityPerItem;
+    final limit = byStock < maxQuantityPerItem ? byStock : maxQuantityPerItem;
     return quantity.clamp(1, limit);
   }
 
@@ -210,10 +201,12 @@ class CartService extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final data = _items.values
-          .map((item) => {
-                'product': item.product.toJson(),
-                'quantity': item.quantity,
-              })
+          .map(
+            (item) => {
+              'product': item.product.toJson(),
+              'quantity': item.quantity,
+            },
+          )
           .toList();
       await prefs.setString(_prefsKey, jsonEncode(data));
     } catch (_) {

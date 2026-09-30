@@ -63,10 +63,7 @@ void main() {
     });
 
     test('extrae el campo error', () {
-      final error = mapStatusCode(
-        400,
-        body: '{"error":"algo fallo"}',
-      );
+      final error = mapStatusCode(400, body: '{"error":"algo fallo"}');
 
       expect(error.message, contains('algo fallo'));
     });

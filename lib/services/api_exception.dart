@@ -26,10 +26,12 @@ sealed class ApiException implements Exception {
   /// Si tiene sentido reintentar la misma peticion.
   ///
   /// Un 404 no: el recurso no existe. Un 500 o un corte de red si.
-  bool get canRetry => this is! ApiNotFoundException && this is! ApiFormatException;
+  bool get canRetry =>
+      this is! ApiNotFoundException && this is! ApiFormatException;
 
   @override
-  String toString() => '$runtimeType: $message'
+  String toString() =>
+      '$runtimeType: $message'
       '${statusCode != null ? ' (HTTP $statusCode)' : ''}'
       '${uri != null ? ' [${uri!.path}]' : ''}';
 }
@@ -100,11 +102,7 @@ ApiException mapNetworkError(Object error, {Uri? uri}) {
 }
 
 /// Traduce un codigo HTTP a [ApiException].
-ApiException mapStatusCode(
-  int statusCode, {
-  Uri? uri,
-  String? body,
-}) {
+ApiException mapStatusCode(int statusCode, {Uri? uri, String? body}) {
   final detail = _extractServerMessage(body);
 
   final message = switch (statusCode) {
@@ -136,7 +134,9 @@ String? _extractServerMessage(String? body) {
     if (decoded is Map) {
       final message = decoded['message'] ?? decoded['error'];
       if (message is String && message.trim().isNotEmpty) return message.trim();
-      if (message is List && message.isNotEmpty) return message.first.toString();
+      if (message is List && message.isNotEmpty) {
+        return message.first.toString();
+      }
     }
   } on FormatException {
     // Cuerpo no-JSON (por ejemplo HTML de un proxy). Se ignora.

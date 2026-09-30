@@ -189,7 +189,8 @@ void main() {
 
     test('un item con cantidad 0 no se restaura', () async {
       SharedPreferences.setMockInitialValues({
-        'kronio_cart_v1': '[{"product":{"id":"x","name":"X","slug":"x",'
+        'kronio_cart_v1':
+            '[{"product":{"id":"x","name":"X","slug":"x",'
             '"price":100,"image":"","stock":5},"quantity":0}]',
       });
 
@@ -200,7 +201,8 @@ void main() {
 
     test('un producto sin id no se restaura', () async {
       SharedPreferences.setMockInitialValues({
-        'kronio_cart_v1': '[{"product":{"id":"","name":"X","slug":"x",'
+        'kronio_cart_v1':
+            '[{"product":{"id":"","name":"X","slug":"x",'
             '"price":100,"image":"","stock":5},"quantity":3}]',
       });
 
@@ -226,9 +228,7 @@ void main() {
       final cart = await CartService.load();
       await cart.add(_product(id: 'a', stock: 10), quantity: 8);
 
-      final result = await cart.revalidateStock([
-        _product(id: 'a', stock: 3),
-      ]);
+      final result = await cart.revalidateStock([_product(id: 'a', stock: 3)]);
 
       expect(cart.itemList.first.quantity, 3);
       expect(result.reducedQuantities, contains('a'));
@@ -239,9 +239,7 @@ void main() {
       final cart = await CartService.load();
       await cart.add(_product(id: 'a', stock: 10), quantity: 2);
 
-      final result = await cart.revalidateStock([
-        _product(id: 'a', stock: 0),
-      ]);
+      final result = await cart.revalidateStock([_product(id: 'a', stock: 0)]);
 
       expect(cart.isEmpty, isTrue);
       expect(result.removedProducts, contains('a'));
@@ -263,9 +261,7 @@ void main() {
       final cart = await CartService.load();
       await cart.add(_product(id: 'a', stock: 10), quantity: 5);
 
-      final result = await cart.revalidateStock([
-        _product(id: 'a', stock: 10),
-      ]);
+      final result = await cart.revalidateStock([_product(id: 'a', stock: 10)]);
 
       expect(cart.itemList.first.quantity, 5);
       expect(result.hasChanges, isFalse);
@@ -275,9 +271,7 @@ void main() {
       final cart = await CartService.load();
       await cart.add(_product(id: 'a', price: 10000, stock: 10));
 
-      await cart.revalidateStock([
-        _product(id: 'a', price: 8000, stock: 10),
-      ]);
+      await cart.revalidateStock([_product(id: 'a', price: 8000, stock: 10)]);
 
       expect(cart.subtotal, 8000);
     });

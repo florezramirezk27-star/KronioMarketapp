@@ -1,4 +1,4 @@
-package com.example.kronio_app
+package co.kronio.market
 
 import io.flutter.embedding.android.FlutterActivity
 

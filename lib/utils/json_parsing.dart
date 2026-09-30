@@ -15,19 +15,19 @@ String asString(dynamic value, {String fallback = ''}) {
 
 /// Lee un valor como int. Acepta `12`, `12.0` y `"12"`.
 int? asInt(dynamic value) => switch (value) {
-      int v => v,
-      num v => v.toInt(),
-      String v => int.tryParse(v.trim()),
-      _ => null,
-    };
+  int v => v,
+  num v => v.toInt(),
+  String v => int.tryParse(v.trim()),
+  _ => null,
+};
 
 /// Lee un valor como double nullable. Acepta `12.5`, `"12.5"` y `null`.
 double? asDoubleOrNull(dynamic value) => switch (value) {
-      // `num` cubre `int` y `double`; el caso `double` seria inalcanzable.
-      num v => v.toDouble(),
-      String v => double.tryParse(v.trim()),
-      _ => null,
-    };
+  // `num` cubre `int` y `double`; el caso `double` seria inalcanzable.
+  num v => v.toDouble(),
+  String v => double.tryParse(v.trim()),
+  _ => null,
+};
 
 /// Lee un valor como double. Acepta `12.5`, `"12.5"` y `null` (devuelve
 /// [fallback]).
@@ -71,8 +71,9 @@ double parseMoney(dynamic value) {
         ? '.'
         : ',';
 
-    final integerPart =
-        raw.substring(0, decimalIndex).replaceAll(thousandsSeparator, '');
+    final integerPart = raw
+        .substring(0, decimalIndex)
+        .replaceAll(thousandsSeparator, '');
     final decimalPart = raw.substring(decimalIndex + 1);
     raw = '$integerPart.$decimalPart';
   } else if (hasComma) {

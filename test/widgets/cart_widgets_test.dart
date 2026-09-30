@@ -26,7 +26,11 @@ Product _product({
   );
 }
 
-Future<void> _pumpApp(WidgetTester tester, CartService cart, Widget child) async {
+Future<void> _pumpApp(
+  WidgetTester tester,
+  CartService cart,
+  Widget child,
+) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light(),
@@ -107,9 +111,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(
-            body: ProductCard(product: _product(stock: 0)),
-          ),
+          home: Scaffold(body: ProductCard(product: _product(stock: 0))),
         ),
       );
 
@@ -143,7 +145,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light(),
-          home: Scaffold(body: ProductCard(product: _product(image: ''))),
+          home: Scaffold(
+            body: ProductCard(product: _product(image: '')),
+          ),
         ),
       );
 
@@ -210,8 +214,9 @@ void main() {
       expect(find.text(r'$ 15.000'), findsOneWidget);
     });
 
-    testWidgets('el boton + se deshabilita al llegar al maximo por item',
-        (tester) async {
+    testWidgets('el boton + se deshabilita al llegar al maximo por item', (
+      tester,
+    ) async {
       final cart = await CartService.load();
       // Stock 1: no se puede pasar de 1 unidad.
       await cart.add(_product(stock: 1));
@@ -227,8 +232,9 @@ void main() {
       expect(iconButton.onPressed, isNull);
     });
 
-    testWidgets('el boton - esta habilitado y baja la cantidad',
-        (tester) async {
+    testWidgets('el boton - esta habilitado y baja la cantidad', (
+      tester,
+    ) async {
       final cart = await CartService.load();
       await cart.add(_product(stock: 10), quantity: 3);
 
@@ -265,8 +271,9 @@ void main() {
       expect(cart.isEmpty, isTrue);
     });
 
-    testWidgets('el boton de vaciar pide confirmacion y luego limpia',
-        (tester) async {
+    testWidgets('el boton de vaciar pide confirmacion y luego limpia', (
+      tester,
+    ) async {
       final cart = await CartService.load();
       await cart.add(_product(id: 'a', stock: 10));
       await cart.add(_product(id: 'b', stock: 10));
@@ -326,8 +333,9 @@ void main() {
       expect(payButton.onPressed, isNotNull);
     });
 
-    testWidgets('el boton de vaciar no aparece con el carrito vacio',
-        (tester) async {
+    testWidgets('el boton de vaciar no aparece con el carrito vacio', (
+      tester,
+    ) async {
       final cart = await CartService.load();
       await _pumpApp(tester, cart, const CartScreen());
 

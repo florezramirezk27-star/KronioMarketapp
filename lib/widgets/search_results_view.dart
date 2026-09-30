@@ -186,10 +186,10 @@ class _SearchResultsViewState extends State<SearchResultsView> {
           product: product,
           onTap: widget.onProductTap == null
               ? () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ProductDetailScreen(product: product),
-                    ),
-                  )
+                  MaterialPageRoute(
+                    builder: (_) => ProductDetailScreen(product: product),
+                  ),
+                )
               : () => widget.onProductTap!(product),
         );
       },

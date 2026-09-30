@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Corre aunque nadie haya touched el repo, para detectar que las dependencias
+  # o el SDK se rompió por fuera.
+  schedule:
+    - cron: '0 6 * * 1' # lunes 06:00 UTC
+
+# Cancela el run anterior si llega uno nuevo para el mismo PR: no hace falta
+# terminar un build que ya quedó obsoleto.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: analyze + test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # La versión exacta la define `.metadata` del proyecto, así que CI
+          # usa la misma que el equipo, no una que se actualiza sola.
+          channel: stable
+          flutter-version: '3.47.2'
+          cache: true
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Analizar
+        # `--fatal-infos` convierte los `info` en error. Sin esto, un
+        # `unnecessary_underscores` o un uso de API deprecada pasan el build.
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Formatear (verificacion)
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Tests
+        run: flutter test --coverage
+
+      - name: Subir cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          if-no-files-found: ignore
+
+  build-android:
+    name: build Android
+    runs-on: ubuntu-latest
+    needs: analyze
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.2'
+          cache: true
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Compilar APK release
+        # Sin keystore: se firma con la llave de debug. Para CI lo que importa
+        # es que compile y que R8 no rompa nada, no que sea publicable.
+        # El build.gradle advierte en log si no encuentra key.properties.
+        run: flutter build apk --release
+
+      - name: Subir APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-release
+          path: build/app/outputs/flutter-apk/*.apk
+
+  build-web:
+    name: build web
+    runs-on: ubuntu-latest
+    needs: analyze
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.2'
+          cache: true
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Compilar web
+        run: flutter build web --release
+
+      - name: Subir build web
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web

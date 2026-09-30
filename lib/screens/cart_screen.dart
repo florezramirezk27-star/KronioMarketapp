@@ -40,9 +40,7 @@ class CartScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Vaciar carrito?'),
-        content: const Text(
-          'Se eliminaran todos los productos de tu carrito.',
-        ),
+        content: const Text('Se eliminaran todos los productos de tu carrito.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -213,8 +211,9 @@ class _QuantityStepper extends StatelessWidget {
 
     // El maximo por item es el menor entre el stock real y el tope del
     // servicio, para no dejar agregar mas de lo que hay disponible.
-    final stockLimit =
-        product.stock > 0 ? product.stock : CartService.maxQuantityPerItem;
+    final stockLimit = product.stock > 0
+        ? product.stock
+        : CartService.maxQuantityPerItem;
     final limit = stockLimit < CartService.maxQuantityPerItem
         ? stockLimit
         : CartService.maxQuantityPerItem;
@@ -232,10 +231,7 @@ class _QuantityStepper extends StatelessWidget {
         ),
         Text(
           '${item.quantity}',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         IconButton(
           icon: const Icon(Icons.add_circle_outline, size: 22),
@@ -305,10 +301,7 @@ class _CheckoutBar extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Quita los productos agotados para continuar',
-                      style: TextStyle(
-                        color: AppColors.warning,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: AppColors.warning, fontSize: 13),
                     ),
                   ),
                 ],

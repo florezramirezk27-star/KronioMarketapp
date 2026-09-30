@@ -83,9 +83,7 @@ class _CategoryChip extends StatelessWidget {
         side: BorderSide(
           color: selected ? AppColors.primary : AppColors.border,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
   }

@@ -15,10 +15,7 @@ import 'package:intl/intl.dart';
 /// omiten porque en COP casi todo el mundo redondea.
 String formatCop(num value, {bool withDecimals = false}) {
   final isNegative = value < 0;
-  final formatter = NumberFormat(
-    withDecimals ? '#,##0.00' : '#,##0',
-    'es_CO',
-  );
+  final formatter = NumberFormat(withDecimals ? '#,##0.00' : '#,##0', 'es_CO');
   // El signo va delante del simbolo (`-$ 5.000`), no entre el simbolo y el
   // numero (`$ -5.000`).
   final sign = isNegative ? '-' : '';
@@ -26,4 +23,5 @@ String formatCop(num value, {bool withDecimals = false}) {
 }
 
 /// Formatea un entero con separadores de miles: `1,234`.
-String formatCount(num value) => NumberFormat.decimalPattern('es_CO').format(value);
+String formatCount(num value) =>
+    NumberFormat.decimalPattern('es_CO').format(value);

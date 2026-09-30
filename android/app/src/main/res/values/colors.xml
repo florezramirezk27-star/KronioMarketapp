@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Colores de marca de Kronio Market.
+     Espejo de lib/theme/app_colors.dart. Si cambias uno, cambialo alli. -->
+<resources>
+    <color name="kronio_primary">#EA580C</color>
+    <!-- orange-50: fondo de la app en modo claro -->
+    <color name="kronio_surface_light">#FFF7ED</color>
+    <!-- Fondo de la app en modo oscuro -->
+    <color name="kronio_surface_dark">#17130F</color>
+</resources>

@@ -59,8 +59,7 @@ class CatalogController extends ChangeNotifier {
   int get totalPages => _totalPages;
   bool get hasMore => _page < _totalPages;
   bool get isLoading => _status == LoadStatus.loading;
-  bool get isEmpty =>
-      _status == LoadStatus.ready && _products.isEmpty;
+  bool get isEmpty => _status == LoadStatus.ready && _products.isEmpty;
 
   /// `true` si la lista vacia se debe a filtros, no a un catalogo vacio.
   bool get isFiltered => _search.isNotEmpty || _categoryId != null;
@@ -99,7 +98,9 @@ class CatalogController extends ChangeNotifier {
   }
 
   Future<void> setCategory(String? categoryId) async {
-    final value = (categoryId == null || categoryId.isEmpty) ? null : categoryId;
+    final value = (categoryId == null || categoryId.isEmpty)
+        ? null
+        : categoryId;
     if (value == _categoryId) return;
     _categoryId = value;
     await _fetch(reset: true);
@@ -169,8 +170,9 @@ class CatalogController extends ChangeNotifier {
       if (requestId != _requestId) return;
 
       final productsResult = results[0] as PaginatedResult<Product>;
-      final categoriesResult =
-          results.length > 1 ? results[1] as List<Category> : _categories;
+      final categoriesResult = results.length > 1
+          ? results[1] as List<Category>
+          : _categories;
 
       _products
         ..clear()

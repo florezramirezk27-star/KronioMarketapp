@@ -7,11 +7,7 @@ import '../utils/format.dart';
 
 /// Tarjeta de producto para el grid del catalogo.
 class ProductCard extends StatelessWidget {
-  const ProductCard({
-    super.key,
-    required this.product,
-    this.onTap,
-  });
+  const ProductCard({super.key, required this.product, this.onTap});
 
   final Product product;
 
@@ -29,12 +25,13 @@ class ProductCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap ??
+        onTap:
+            onTap ??
             () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ProductDetailScreen(product: product),
-                  ),
-                ),
+              MaterialPageRoute(
+                builder: (_) => ProductDetailScreen(product: product),
+              ),
+            ),
         child: Ink(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),

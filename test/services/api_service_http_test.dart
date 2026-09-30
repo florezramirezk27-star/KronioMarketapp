@@ -27,10 +27,10 @@ class _FakeClient extends http.BaseClient {
 }
 
 http.Response _json(Object body, {int status = 200}) => http.Response(
-      jsonEncode(body),
-      status,
-      headers: {'content-type': 'application/json; charset=utf-8'},
-    );
+  jsonEncode(body),
+  status,
+  headers: {'content-type': 'application/json; charset=utf-8'},
+);
 
 const _productJson = {
   'id': 'a',
@@ -87,7 +87,12 @@ void main() {
       late Uri captured;
       final client = _FakeClient((request) async {
         captured = request.url;
-        return _json({'items': <Object>[], 'total': 0, 'page': 1, 'totalPages': 1});
+        return _json({
+          'items': <Object>[],
+          'total': 0,
+          'page': 1,
+          'totalPages': 1,
+        });
       });
       final api = ApiService(client: client);
 
@@ -100,7 +105,12 @@ void main() {
       late Uri captured;
       final client = _FakeClient((request) async {
         captured = request.url;
-        return _json({'items': <Object>[], 'total': 0, 'page': 1, 'totalPages': 1});
+        return _json({
+          'items': <Object>[],
+          'total': 0,
+          'page': 1,
+          'totalPages': 1,
+        });
       });
       final api = ApiService(client: client);
 
@@ -113,7 +123,12 @@ void main() {
       late Uri captured;
       final client = _FakeClient((request) async {
         captured = request.url;
-        return _json({'items': <Object>[], 'total': 0, 'page': 1, 'totalPages': 1});
+        return _json({
+          'items': <Object>[],
+          'total': 0,
+          'page': 1,
+          'totalPages': 1,
+        });
       });
       final api = ApiService(client: client);
 
@@ -126,20 +141,14 @@ void main() {
       final client = _FakeClient((_) async => _json({}, status: 500));
       final api = ApiService(client: client);
 
-      expect(
-        () => api.fetchProducts(),
-        throwsA(isA<ApiServerException>()),
-      );
+      expect(() => api.fetchProducts(), throwsA(isA<ApiServerException>()));
     });
 
     test('lanza ApiClientException en un 400', () async {
       final client = _FakeClient((_) async => _json({}, status: 400));
       final api = ApiService(client: client);
 
-      expect(
-        () => api.fetchProducts(),
-        throwsA(isA<ApiClientException>()),
-      );
+      expect(() => api.fetchProducts(), throwsA(isA<ApiClientException>()));
     });
 
     test('lanza ApiFormatException si la respuesta no es JSON', () async {
@@ -148,20 +157,14 @@ void main() {
       );
       final api = ApiService(client: client);
 
-      expect(
-        () => api.fetchProducts(),
-        throwsA(isA<ApiFormatException>()),
-      );
+      expect(() => api.fetchProducts(), throwsA(isA<ApiFormatException>()));
     });
 
     test('lanza ApiFormatException si falta la lista de items', () async {
       final client = _FakeClient((_) async => _json({'message': 'nope'}));
       final api = ApiService(client: client);
 
-      expect(
-        () => api.fetchProducts(),
-        throwsA(isA<ApiFormatException>()),
-      );
+      expect(() => api.fetchProducts(), throwsA(isA<ApiFormatException>()));
     });
 
     test('el timeout se traduce a ApiTimeoutException', () async {
@@ -179,10 +182,7 @@ void main() {
       });
       final api = ApiService(client: client);
 
-      expect(
-        () => api.fetchProducts(),
-        throwsA(isA<ApiNetworkException>()),
-      );
+      expect(() => api.fetchProducts(), throwsA(isA<ApiNetworkException>()));
     });
 
     test('un ClientException se traduce a ApiNetworkException', () async {
@@ -191,10 +191,7 @@ void main() {
       });
       final api = ApiService(client: client);
 
-      expect(
-        () => api.fetchProducts(),
-        throwsA(isA<ApiNetworkException>()),
-      );
+      expect(() => api.fetchProducts(), throwsA(isA<ApiNetworkException>()));
     });
   });
 
@@ -237,7 +234,12 @@ void main() {
     test('devuelve la lista de categorias', () async {
       final client = _FakeClient(
         (_) async => _json([
-          {'id': 'c1', 'name': 'Moda', 'slug': 'moda', '_count': {'products': 3}},
+          {
+            'id': 'c1',
+            'name': 'Moda',
+            'slug': 'moda',
+            '_count': {'products': 3},
+          },
         ]),
       );
       final api = ApiService(client: client);
@@ -253,10 +255,7 @@ void main() {
       final client = _FakeClient((_) async => _json({'items': []}));
       final api = ApiService(client: client);
 
-      expect(
-        () => api.fetchCategories(),
-        throwsA(isA<ApiFormatException>()),
-      );
+      expect(() => api.fetchCategories(), throwsA(isA<ApiFormatException>()));
     });
   });
 

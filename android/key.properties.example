@@ -1,0 +1,17 @@
+# Configuracion de firma de Android (NO COMMITEAR).
+#
+# Este archivo lo genera scripts/generar_keystore.ps1.
+# Esta en .gitignore: contiene las contrasenas del keystore.
+#
+# Formato esperado:
+#   storePassword=...
+#   keyPassword=...
+#   keyAlias=kronio
+#   storeFile=C\:\\Users\\tu_usuario\\ruta\\al\\keystore.jks
+#
+# OJO: en storeFile las barras invertidas van escapadas.
+
+storePassword=
+keyPassword=
+keyAlias=kronio
+storeFile=

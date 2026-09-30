@@ -74,11 +74,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          product.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: const [CartButton()],
       ),
       body: SingleChildScrollView(
@@ -110,8 +106,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             const SizedBox(height: 12),
             Text(
               'Descripcion',
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -127,17 +124,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               const SizedBox(height: 12),
               Text(
                 'Codigo: ${product.customCode}',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
             const SizedBox(height: 32),
-            if (product.isAvailable) _PurchaseSection(
-              product: product,
-              quantity: _quantity,
-              onQuantityChanged: (value) => setState(() => _quantity = value),
-              onAddToCart: _addToCart,
-            )
+            if (product.isAvailable)
+              _PurchaseSection(
+                product: product,
+                quantity: _quantity,
+                onQuantityChanged: (value) => setState(() => _quantity = value),
+                onAddToCart: _addToCart,
+              )
             else
               const _UnavailableNotice(),
           ],
@@ -199,8 +198,7 @@ class _ImagePreview extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color:
-                            selected ? AppColors.primary : AppColors.border,
+                        color: selected ? AppColors.primary : AppColors.border,
                         width: selected ? 2 : 1,
                       ),
                     ),
@@ -335,8 +333,11 @@ class _StockNotice extends StatelessWidget {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.remove_circle_outline,
-                color: AppColors.danger, size: 18),
+            Icon(
+              Icons.remove_circle_outline,
+              color: AppColors.danger,
+              size: 18,
+            ),
             SizedBox(width: 6),
             Text(
               'Producto agotado',
@@ -391,9 +392,7 @@ class _PurchaseSection extends StatelessWidget {
           children: [
             Text(
               'Cantidad:',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
+              style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(width: 16),
@@ -468,11 +467,7 @@ class _UnavailableNotice extends StatelessWidget {
       ),
       child: const Column(
         children: [
-          Icon(
-            Icons.info_outline,
-            color: AppColors.textSecondary,
-            size: 32,
-          ),
+          Icon(Icons.info_outline, color: AppColors.textSecondary, size: 32),
           SizedBox(height: 8),
           Text(
             'Este producto no esta disponible en este momento.',

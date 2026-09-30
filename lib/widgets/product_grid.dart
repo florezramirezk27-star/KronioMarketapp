@@ -78,7 +78,8 @@ class _ProductGridState extends State<ProductGrid> {
 
         return CustomScrollView(
           controller: _scrollController,
-          physics: widget.physics ??
+          physics:
+              widget.physics ??
               const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
@@ -93,36 +94,33 @@ class _ProductGridState extends State<ProductGrid> {
                   final columns = _columnsFor(constraints.crossAxisExtent);
 
                   return SliverGrid(
-                    gridDelegate:
-                        SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: columns,
                       // Proporción pensada para la altura real del card
                       // (imagen cuadrada + nombre + precio). Se recalcula por
                       // columna para que el card se adapte al ancho real.
-                      childAspectRatio: _aspectRatioFor(constraints.crossAxisExtent, columns),
+                      childAspectRatio: _aspectRatioFor(
+                        constraints.crossAxisExtent,
+                        columns,
+                      ),
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final product = products[index];
-                        return ProductCard(
-                          product: product,
-                          onTap: widget.onTapProduct == null
-                              ? null
-                              : () => widget.onTapProduct!(product),
-                        );
-                      },
-                      childCount: products.length + headerCount,
-                    ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final product = products[index];
+                      return ProductCard(
+                        product: product,
+                        onTap: widget.onTapProduct == null
+                            ? null
+                            : () => widget.onTapProduct!(product),
+                      );
+                    }, childCount: products.length + headerCount),
                   );
                 },
               ),
             ),
 
-            SliverToBoxAdapter(
-              child: _Footer(controller: controller),
-            ),
+            SliverToBoxAdapter(child: _Footer(controller: controller)),
           ],
         );
       },
@@ -195,9 +193,7 @@ class _Footer extends StatelessWidget {
           child: Text(
             'Mostrando ${controller.products.length} de ${controller.total} productos',
             style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
+              color: Theme.of(context).colorScheme.onSurface
                   .withValues(alpha: 0.6),
               fontSize: 12,
             ),

@@ -6,15 +6,29 @@ void main() {
   group('PaginatedResult.fromJson', () {
     // Respuesta real de GET /products del backend de Kronio.
     Map<String, dynamic> realResponse() => {
-          'items': [
-            {'id': 'a', 'name': 'A', 'slug': 'a', 'price': '100', 'image': '', 'stock': 5},
-            {'id': 'b', 'name': 'B', 'slug': 'b', 'price': '200', 'image': '', 'stock': 5},
-          ],
-          'total': 45,
-          'page': 1,
-          'limit': 20,
-          'totalPages': 3,
-        };
+      'items': [
+        {
+          'id': 'a',
+          'name': 'A',
+          'slug': 'a',
+          'price': '100',
+          'image': '',
+          'stock': 5,
+        },
+        {
+          'id': 'b',
+          'name': 'B',
+          'slug': 'b',
+          'price': '200',
+          'image': '',
+          'stock': 5,
+        },
+      ],
+      'total': 45,
+      'page': 1,
+      'limit': 20,
+      'totalPages': 3,
+    };
 
     String productFromJson(Map<String, dynamic> json) =>
         '${json['id']}:${json['name']}';
@@ -52,12 +66,16 @@ void main() {
     });
 
     test('acepta un array plano como una sola pagina', () {
-      final result = PaginatedResult.fromJson(
-        [
-          {'id': 'a', 'name': 'A', 'slug': 'a', 'price': '1', 'image': '', 'stock': 1},
-        ],
-        itemBuilder: productFromJson,
-      );
+      final result = PaginatedResult.fromJson([
+        {
+          'id': 'a',
+          'name': 'A',
+          'slug': 'a',
+          'price': '1',
+          'image': '',
+          'stock': 1,
+        },
+      ], itemBuilder: productFromJson);
 
       expect(result.items.length, 1);
       expect(result.page, 1);
@@ -66,15 +84,19 @@ void main() {
     });
 
     test('acepta la forma antigua {value, Count}', () {
-      final result = PaginatedResult.fromJson(
-        {
-          'value': [
-            {'id': 'a', 'name': 'A', 'slug': 'a', 'price': '1', 'image': '', 'stock': 1},
-          ],
-          'Count': 10,
-        },
-        itemBuilder: productFromJson,
-      );
+      final result = PaginatedResult.fromJson({
+        'value': [
+          {
+            'id': 'a',
+            'name': 'A',
+            'slug': 'a',
+            'price': '1',
+            'image': '',
+            'stock': 1,
+          },
+        ],
+        'Count': 10,
+      }, itemBuilder: productFromJson);
 
       expect(result.items.length, 1);
       expect(result.total, 10);
@@ -83,7 +105,14 @@ void main() {
     test('deduce que hay mas paginas si items < total', () {
       final body = {
         'items': [
-          {'id': 'a', 'name': 'A', 'slug': 'a', 'price': '1', 'image': '', 'stock': 1},
+          {
+            'id': 'a',
+            'name': 'A',
+            'slug': 'a',
+            'price': '1',
+            'image': '',
+            'stock': 1,
+          },
         ],
         'total': 30,
         'page': 1,
@@ -100,10 +129,9 @@ void main() {
 
     test('lanza ApiFormatException si no hay lista de items', () {
       expect(
-        () => PaginatedResult.fromJson(
-          {'message': 'error'},
-          itemBuilder: productFromJson,
-        ),
+        () => PaginatedResult.fromJson({
+          'message': 'error',
+        }, itemBuilder: productFromJson),
         throwsA(isA<ApiFormatException>()),
       );
     });
@@ -119,36 +147,44 @@ void main() {
     });
 
     test('ignora elementos que no son mapas', () {
-      final result = PaginatedResult.fromJson(
-        {
-          'items': [
-            {'id': 'a', 'name': 'A', 'slug': 'a', 'price': '1', 'image': '', 'stock': 1},
-            'basura',
-            null,
-            42,
-          ],
-          'total': 4,
-          'page': 1,
-          'totalPages': 1,
-        },
-        itemBuilder: productFromJson,
-      );
+      final result = PaginatedResult.fromJson({
+        'items': [
+          {
+            'id': 'a',
+            'name': 'A',
+            'slug': 'a',
+            'price': '1',
+            'image': '',
+            'stock': 1,
+          },
+          'basura',
+          null,
+          42,
+        ],
+        'total': 4,
+        'page': 1,
+        'totalPages': 1,
+      }, itemBuilder: productFromJson);
 
       expect(result.items.length, 1);
     });
 
     test('acepta numeros de pagina como string', () {
-      final result = PaginatedResult.fromJson(
-        {
-          'items': [
-            {'id': 'a', 'name': 'A', 'slug': 'a', 'price': '1', 'image': '', 'stock': 1},
-          ],
-          'total': '10',
-          'page': '1',
-          'totalPages': '2',
-        },
-        itemBuilder: productFromJson,
-      );
+      final result = PaginatedResult.fromJson({
+        'items': [
+          {
+            'id': 'a',
+            'name': 'A',
+            'slug': 'a',
+            'price': '1',
+            'image': '',
+            'stock': 1,
+          },
+        ],
+        'total': '10',
+        'page': '1',
+        'totalPages': '2',
+      }, itemBuilder: productFromJson);
 
       expect(result.page, 1);
       expect(result.totalPages, 2);
@@ -156,10 +192,12 @@ void main() {
     });
 
     test('una lista vacia no es un error', () {
-      final result = PaginatedResult.fromJson(
-        {'items': [], 'total': 0, 'page': 1, 'totalPages': 1},
-        itemBuilder: productFromJson,
-      );
+      final result = PaginatedResult.fromJson({
+        'items': [],
+        'total': 0,
+        'page': 1,
+        'totalPages': 1,
+      }, itemBuilder: productFromJson);
 
       expect(result.items, isEmpty);
       expect(result.hasMore, isFalse);

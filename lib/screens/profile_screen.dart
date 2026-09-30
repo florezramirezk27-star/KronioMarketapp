@@ -79,10 +79,7 @@ class ProfileScreen extends StatelessWidget {
 ///
 /// No viene del backend: muestra lo que hay guardado en este dispositivo.
 class _StatsCard extends StatelessWidget {
-  const _StatsCard({
-    required this.cartItems,
-    required this.cartSubtotal,
-  });
+  const _StatsCard({required this.cartItems, required this.cartSubtotal});
 
   final int cartItems;
   final double cartSubtotal;
@@ -108,16 +105,9 @@ class _StatsCard extends StatelessWidget {
                 value: formatCount(cartItems),
               ),
             ),
-            Container(
-              width: 1,
-              height: 36,
-              color: AppColors.border,
-            ),
+            Container(width: 1, height: 36, color: AppColors.border),
             Expanded(
-              child: _Stat(
-                label: 'Subtotal',
-                value: formatCop(cartSubtotal),
-              ),
+              child: _Stat(label: 'Subtotal', value: formatCop(cartSubtotal)),
             ),
           ],
         ),
@@ -148,10 +138,7 @@ class _Stat extends StatelessWidget {
         Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
       ],
     );
