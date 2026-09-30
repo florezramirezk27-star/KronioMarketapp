@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+
+import 'screens/cart_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/profile_screen.dart';
 import 'services/cart_service.dart';
+import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
 import 'widgets/brand_logo.dart';
 import 'widgets/cart_scope.dart';
 
@@ -17,46 +22,27 @@ class KronioApp extends StatelessWidget {
     return MaterialApp(
       title: 'Kronio Market',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepOrange,
-          primary: const Color(0xFFEA580C), // orange-600
-        ),
-        scaffoldBackgroundColor: const Color(0xFFFFF7ED), // orange-50
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          scrolledUnderElevation: 1,
-          centerTitle: false,
-          titleTextStyle: TextStyle(
-            color: Color(0xFF111827),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Geist',
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFEA580C),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-          ),
-        ),
-        bottomSheetTheme: const BottomSheetThemeData(
-          backgroundColor: Colors.white,
-        ),
-        tabBarTheme: const TabBarThemeData(
-          labelColor: Color(0xFFEA580C),
-          unselectedLabelColor: Color(0xFF6B7280),
-          indicatorColor: Color(0xFFEA580C),
-        ),
-      ),
+      // Sigue la preferencia del sistema (claro / oscuro / automatico).
+      themeMode: ThemeMode.system,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      // Rutas nombradas para pantallas compartidas (carrito, perfil). Evita
+      // tener que pasar el `CartScope` a mano al navegar.
+      routes: {
+        '/cart': (context) => const CartScreen(),
+        '/profile': (context) => const ProfileScreen(),
+      },
+      // Sin `initialRoute`: la pantalla real la monta `_Root` debajo, y
+      // declarar ambos a la vez hace que Flutter lance un assert.
       home: const _Root(),
     );
   }
 }
 
+/// Carga el carrito persistido y recien ahi monta el arbol principal.
+///
+/// Se usa un `FutureBuilder` en vez de un `StatefulWidget` porque la carga es
+/// de una sola vez al arranque y no hace falta conservar estado.
 class _Root extends StatelessWidget {
   const _Root();
 
@@ -77,13 +63,14 @@ class _Root extends StatelessWidget {
   }
 }
 
+/// Pantalla de bienvenida mientras se hidrata el carrito local.
 class BrandSplash extends StatelessWidget {
   const BrandSplash({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF7ED),
+      backgroundColor: AppColors.surfaceLight,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -95,13 +82,16 @@ class BrandSplash extends StatelessWidget {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF111827),
+                color: AppColors.textPrimary,
               ),
             ),
             SizedBox(height: 8),
             Text(
               'Tu tienda de confianza',
-              style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
             ),
             SizedBox(height: 40),
             SizedBox(
@@ -109,7 +99,7 @@ class BrandSplash extends StatelessWidget {
               height: 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2.5,
-                color: Color(0xFFEA580C),
+                color: AppColors.primary,
               ),
             ),
           ],

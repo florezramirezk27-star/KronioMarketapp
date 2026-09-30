@@ -1,28 +1,29 @@
-class Category {
-  final String id;
-  final String name;
-  final String slug;
-  final int productCount;
+import '../utils/json_parsing.dart';
 
-  Category({
+/// Categoria del catalogo.
+class Category {
+  const Category({
     required this.id,
     required this.name,
     required this.slug,
     this.productCount = 0,
   });
 
+  final String id;
+  final String name;
+  final String slug;
+
+  /// Cantidad de productos, del `_count.products` que agrega Prisma.
+  final int productCount;
+
   factory Category.fromJson(Map<String, dynamic> json) {
-    int count = 0;
-    final c = json['_count'];
-    if (c is Map<String, dynamic>) {
-      count = (c['products'] as num?)?.toInt() ?? 0;
-    }
+    final count = json['_count'];
 
     return Category(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      slug: json['slug'] ?? '',
-      productCount: count,
+      id: asString(json['id']),
+      name: asString(json['name']),
+      slug: asString(json['slug']),
+      productCount: count is Map ? asInt(count['products']) ?? 0 : 0,
     );
   }
 }
