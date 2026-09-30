@@ -1,0 +1,54 @@
+# Normaliza los finales de linea en el repositorio para que el contenido sea
+# identico en Windows, macOS y Linux, y que los archivos nativos (Kotlin, Swift,
+# CMake, Gradle) no cambien de formato al salir de un solo SO.
+
+# Default: LF en el repo, CRLF en el working copy de Windows.
+* text=auto eol=lf
+
+# Archivos que DEBEN usar CRLF (Git los marca como binarios por diseño).
+*.bat text eol=crlf
+*.cmd text eol=crlf
+gradlew text eol=crlf
+gradlew.bat text eol=crlf
+
+# Archivos que deben quedar LF.
+*.sh text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.dart text eol=lf
+*.kt text eol=lf
+*.kts text eol=lf
+*.java text eol=lf
+*.swift text eol=lf
+*.cc text eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.mm text eol=lf
+*.m text eol=lf
+*.plist text eol=lf
+*.xml text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+
+# Fuente: Git ya detecta que son binarias, pero se declara explicitamente para
+# que `git diff` y los tools no intenten aplicarles reglas de texto.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.jar binary
+*.aar binary
+*.apk binary
+*.aab binary
+*.keystore binary
+*.jks binary
+*.p12 binary
+*.mobileprovision binary
