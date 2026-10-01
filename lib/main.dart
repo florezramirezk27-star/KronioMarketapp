@@ -1,11 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import 'controllers/auth_controller.dart';
 import 'screens/cart_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/register_screen.dart';
+import 'services/auth_service.dart';
 import 'services/cart_service.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+import 'widgets/auth_scope.dart';
 import 'widgets/brand_logo.dart';
 import 'widgets/cart_scope.dart';
 
@@ -26,52 +33,78 @@ class KronioApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      // Rutas nombradas para pantallas compartidas (carrito, perfil). Evita
-      // tener que pasar el `CartScope` a mano al navegar.
+      // Rutas nombradas para pantallas compartidas (carrito, perfil, auth).
+      // Evita tener que pasar los scopes a mano al navegar.
       routes: {
         '/cart': (context) => const CartScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
       },
       // Sin `initialRoute`: `home` es solo la pantalla inicial; el resto se
       // resuelve por `routes`.
       home: const HomeScreen(),
-      // El `CartScope` va en el `builder` y no en `home` a proposito: asi envuelve
-      // al Navigator completo y las rutas nombradas heredan el carrito.
+      // Los scopes van en el `builder` y no en `home` a proposito: asi envuelven
+      // al Navigator completo y las rutas nombradas heredan el carrito y la
+      // sesion.
       //
-      // Si se dejara en `home`, `/cart` y `/profile` quedarian como hermanas de
-      // esa rama, fuera del `InheritedWidget`, y `CartScope.of(context)`
+      // Si se dejaran en `home`, `/cart` y `/profile` quedarian como hermanas de
+      // esa rama, fuera de los `InheritedWidget`, y `CartScope.of(context)`
       // devolveria null -> pantalla roja al abrir el carrito.
-      builder: (context, child) => _CartScopeHost(child: child!),
+      builder: (context, child) => _AppScopeHost(child: child!),
     );
   }
 }
 
-/// Hidrata el carrito una vez y monta el [CartScope] por encima del Navigator.
+/// Carrito y sesion ya hidratados, listos para montar los scopes.
+class _AppScopes {
+  const _AppScopes({required this.cart, required this.auth});
+
+  final CartService cart;
+  final AuthController auth;
+}
+
+/// Hidrata carrito y sesion una vez y monta los scopes por encima del Navigator.
 ///
 /// Va en el `builder` del `MaterialApp` para que abarque tambien las rutas
-/// nombradas (`/cart`, `/profile`), que si no quedan fuera del
-/// `InheritedWidget` y `CartScope.of` revienta.
-class _CartScopeHost extends StatefulWidget {
-  const _CartScopeHost({required this.child});
+/// nombradas (`/cart`, `/profile`), que si no quedan fuera de los
+/// `InheritedWidget`.
+class _AppScopeHost extends StatefulWidget {
+  const _AppScopeHost({required this.child});
 
   final Widget child;
 
   @override
-  State<_CartScopeHost> createState() => _CartScopeHostState();
+  State<_AppScopeHost> createState() => _AppScopeHostState();
 }
 
-class _CartScopeHostState extends State<_CartScopeHost> {
-  late final Future<CartService> _cart = CartService.load();
+class _AppScopeHostState extends State<_AppScopeHost> {
+  late final Future<_AppScopes> _scopes = _load();
+
+  Future<_AppScopes> _load() async {
+    final cart = await CartService.load();
+    final auth = AuthController(service: await AuthService.create());
+
+    // La restauracion de la sesion no bloquea el arranque: la app abre con el
+    // perfil en estado "cargando" y se resuelve solo cuando termina.
+    unawaited(auth.restore());
+
+    return _AppScopes(cart: cart, auth: auth);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<CartService>(
-      future: _cart,
+    return FutureBuilder<_AppScopes>(
+      future: _scopes,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const BrandSplash();
         }
-        return CartScope(cart: snapshot.data!, child: widget.child);
+        final scopes = snapshot.data!;
+        return CartScope(
+          cart: scopes.cart,
+          child: AuthScope(auth: scopes.auth, child: widget.child),
+        );
       },
     );
   }

@@ -1,55 +1,31 @@
 import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
+import '../controllers/auth_controller.dart';
 import '../theme/app_colors.dart';
 import '../utils/format.dart';
+import '../widgets/auth_scope.dart';
 import '../widgets/cart_scope.dart';
 
 /// Pantalla de perfil.
 ///
-/// Antes estaba dead code: el archivo existia pero ninguna parte de la app
-/// navegaba a el. Ahora es alcanzable desde el menu lateral del AppBar.
+/// Muestra la cuenta real cuando hay sesion iniciada. El login del backend es
+/// por cookie, asi que la sesion sobrevive a los reinicios y la pantalla la
+/// resuelve el [AuthController] al arrancar.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final cart = CartScope.of(context);
+    final auth = AuthScope.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi cuenta')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Center(
-            child: CircleAvatar(
-              radius: 40,
-              child: Icon(Icons.person, size: 40),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Center(
-            child: Text(
-              'Inicia sesion para ver tus pedidos',
-              style: TextStyle(fontSize: 16),
-            ),
-          ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
-            onPressed: () {
-              // El login todavia no existe: el backend exige JWT y la pantalla
-              // de autenticacion no esta implementada.
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'El inicio de sesion todavia no esta disponible',
-                  ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.login),
-            label: const Text('Iniciar sesion'),
-          ),
+          _AccountSection(auth: auth),
           const SizedBox(height: 24),
           const Divider(),
           _StatsCard(cartItems: cart.totalItems, cartSubtotal: cart.subtotal),
@@ -71,6 +47,107 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Avatar y acciones de la cuenta, segun el estado de la sesion.
+class _AccountSection extends StatelessWidget {
+  const _AccountSection({required this.auth});
+
+  final AuthController auth;
+
+  Future<void> _openLogin(BuildContext context) async {
+    auth.clearError();
+    await Navigator.of(context).pushNamed<bool>('/login');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (auth.isUnknown) {
+      return const Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: CircularProgressIndicator(),
+          ),
+          Text(
+            'Cargando tu cuenta...',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ],
+      );
+    }
+
+    final user = auth.user;
+    if (user == null) {
+      return Column(
+        children: [
+          const CircleAvatar(
+            radius: 40,
+            child: Icon(Icons.person_outline, size: 40),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Inicia sesion para ver tus pedidos',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => _openLogin(context),
+              icon: const Icon(Icons.login),
+              label: const Text('Iniciar sesion'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 40,
+          backgroundColor: scheme.primaryContainer,
+          child: Text(
+            user.initials,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: scheme.onPrimaryContainer,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          user.displayName,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          user.email,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        if (user.isAdmin) ...[
+          const SizedBox(height: 8),
+          const Chip(label: Text('Administrador')),
+        ],
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: auth.isBusy ? null : () => auth.logout(),
+            icon: const Icon(Icons.logout),
+            label: const Text('Cerrar sesion'),
+          ),
+        ),
+      ],
     );
   }
 }
