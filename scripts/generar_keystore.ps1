@@ -32,7 +32,12 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$androidDir = Split-Path -Parent $PSScriptRoot
+# $PSScriptRoot es <repo>/scripts, asi que su padre es la raiz del repo, no la
+# carpeta android/. Hay que bajar un nivel mas: Gradle resuelve
+# `rootProject.file("key.properties")` con rootProject = android/, asi que el
+# archivo DEBE quedar en android/key.properties y no en la raiz.
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$androidDir = Join-Path $repoRoot 'android'
 if (-not $KeystorePath) {
     $KeystorePath = Join-Path $androidDir 'app/kronio-release.jks'
 }
@@ -168,11 +173,13 @@ if ([string]::IsNullOrWhiteSpace($storePassword)) {
     Write-Host '  -> generado automaticamente' -ForegroundColor DarkGray
 }
 
-$keyPassword = Read-Secret 'Password de la llave (keyPassword):' -AllowEmpty
-if ([string]::IsNullOrWhiteSpace($keyPassword)) {
-    $keyPassword = Generate-Password
-    Write-Host '  -> generado automaticamente' -ForegroundColor DarkGray
-}
+# keytool en JDK 9+ crea un keystore PKCS12 por defecto, y PKCS12 NO admite
+# passwords distintas para el store y la llave: ignora -keypass y usa la del
+# store. Si se escribiera una keyPassword distinta en key.properties, Gradle
+# fallaria al firmar con "Keystore was tampered with, or password was
+# incorrect". Por eso se usa la misma para ambos; pedir una segunda seria
+# pedir un dato que keytool va a descartar igual.
+$keyPassword = $storePassword
 
 $alias = Read-WithDefault 'Alias de la llave (keyAlias)' 'kronio'
 
@@ -256,7 +263,14 @@ public class Verify {
     Properties p = new Properties();
     try (FileInputStream in = new FileInputStream(a[0])) { p.load(in); }
     for (String k : p.stringPropertyNames()) {
-      if (k.contains("storePassword")) System.out.println("CLAVE CORRUPTA: " + k);
+      // Un BOM UTF-8 al inicio del archivo se pega a la primera clave y la
+      // vuelve "<BOM>storePassword". El nombre bueno es exactamente
+      // "storePassword", asi que se busca una variante, no un `contains`:
+      // `contains` marcaria como corrupta la clave correcta.
+      if (k.contains("storePassword") && !k.equals("storePassword")) {
+        System.out.println("CLAVE CORRUPTA: " + k);
+        System.exit(1);
+      }
     }
     for (String k : new String[]{"storePassword","keyPassword","keyAlias","storeFile"}) {
       String v = p.getProperty(k);
@@ -276,7 +290,14 @@ New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 try {
     $javaExe = Join-Path (Split-Path -Parent $keytool) 'java.exe'
     $verifyJava = Join-Path $tmpDir 'Verify.java'
-    Set-Content -Path $verifyJava -Value $verify -Encoding UTF8
+    # SIN BOM: `Set-Content -Encoding UTF8` en Windows PowerShell 5.1 escribe un
+    # BOM UTF-8, y javac lo rechaza con "illegal character: '\ufeff'". Hay que
+    # escribir los bytes explicitamente.
+    [System.IO.File]::WriteAllText(
+        $verifyJava,
+        $verify,
+        [System.Text.UTF8Encoding]::new($false)
+    )
 
     & $javaExe $verifyJava $keyPropsPath 2>&1 | ForEach-Object { Write-Host "  $_" }
     if ($LASTEXITCODE -ne 0) {
