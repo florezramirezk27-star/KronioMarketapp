@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kronio_app/config/app_config.dart';
 import 'package:kronio_app/screens/content_screen.dart';
 import 'package:kronio_app/widgets/app_footer.dart';
 import 'package:kronio_app/widgets/brand_header.dart';
@@ -19,8 +20,9 @@ Future<void> _pumpFooter(
   WidgetTester tester, {
   double width = 400,
   bool withRoutes = false,
+  double height = 2400,
 }) async {
-  tester.view.physicalSize = const Size(900, 2400);
+  tester.view.physicalSize = Size(900, height);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
@@ -46,6 +48,21 @@ Future<void> _pumpFooter(
 }
 
 void main() {
+  /// Abre un documento del footer en un viewport de teléfono real.
+  ///
+  /// El alto importa: con los 2400px que usa el resto de los tests el
+  /// documento entero cabe en pantalla, así que no hay nada que probar de
+  /// scroll. Con 800 de alto pasa lo que pasa en un teléfono de verdad.
+  Future<void> openDocument(
+    WidgetTester tester,
+    String label, {
+    double height = 800,
+  }) async {
+    await _pumpFooter(tester, height: height);
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('muestra marca, columnas y copyright', (tester) async {
     await _pumpFooter(tester);
 
@@ -53,9 +70,13 @@ void main() {
     expect(find.text('TIENDA'), findsOneWidget);
     expect(find.text('AYUDA'), findsOneWidget);
     expect(find.text('Contacto'), findsOneWidget);
-    expect(find.text('Politica de privacidad'), findsOneWidget);
-    expect(find.text('Datos personales'), findsOneWidget);
+    expect(find.text('Política de privacidad'), findsOneWidget);
+    expect(find.text('Términos y condiciones'), findsOneWidget);
     expect(find.textContaining('Kronio Market'), findsWidgets);
+
+    // El enlace "Datos personales" se quitó a propósito: la política de
+    // privacidad ya es el aviso de la Ley 1581.
+    expect(find.text('Datos personales'), findsNothing);
   });
 
   // Este es el cambio de fondo: antes cada enlace abria un dialogo que decia
@@ -79,54 +100,84 @@ void main() {
 
     expect(find.byType(ContentScreen), findsNothing);
     expect(find.byType(SnackBar), findsOneWidget);
-    expect(find.textContaining('soporte@'), findsOneWidget);
-  });
-
-  testWidgets('Politica de privacidad abre su documento', (tester) async {
-    await _pumpFooter(tester);
-
-    await tester.tap(find.text('Politica de privacidad'));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(ContentScreen), findsOneWidget);
+    expect(find.textContaining('@'), findsWidgets);
     expect(
-      find.text('Politica de privacidad'),
-      findsWidgets,
-      reason: 'el titulo esta en el AppBar y en el cuerpo',
+      find.textContaining(AppConfig.supportEmail),
+      findsOneWidget,
+      reason: 'el aviso tiene que decir a qué correo escribir',
     );
-    expect(find.textContaining('Datos que nos llega'), findsOneWidget);
-    expect(find.textContaining('Tus derechos como titular'), findsOneWidget);
   });
 
-  // El aviso de la Ley 1581 va en documento propio, no piggybackeado en el de
-  // privacidad: es el que la SIC revisa y el que el titular deberia poder abrir
-  // y leer sin tener que adivinar que esta escondido en otra pantalla.
-  testWidgets('Datos personales abre su documento', (tester) async {
+  testWidgets('la politica de privacidad trae el aviso de datos', (
+    tester,
+  ) async {
     await _pumpFooter(tester);
 
-    await tester.tap(find.text('Datos personales'));
+    await tester.tap(find.text('Política de privacidad'));
     await tester.pumpAndSettle();
 
     expect(find.byType(ContentScreen), findsOneWidget);
-    expect(find.textContaining('Ley 1581'), findsOneWidget);
-    expect(find.textContaining('Tus derechos como titular'), findsOneWidget);
+
+    // A partir de aca los `findsWidgets` y no `findsOneWidget`: el índice
+    // "Contenido" de la pantalla repite cada título de sección, así que un
+    // título aparece dos veces (en el índice y en el cuerpo) y una ley citada
+    // en varios apartados aparece tres. Buscar exactamente una coincidencia
+    // haría fallar el test por el índice, no por el contenido.
+    expect(find.textContaining('Ley 1581'), findsWidgets);
     expect(
-      find.textContaining('Transferencias internacionales'),
+      find.textContaining('Datos personales que recopilamos'),
+      findsWidgets,
+    );
+    expect(find.textContaining('Principios del tratamiento'), findsWidgets);
+    expect(
+      find.textContaining('Derechos del titular de los datos'),
+      findsWidgets,
+    );
+  });
+
+  // El chatbot manda la conversación a servidores de Google fuera del país, y
+  // eso tiene que estar escrito. Vive en el apartado 11, así que hay que
+  // llegar abajo: un `find` sin desplazar no encontraría nada porque el
+  // `ListView` aún no construyó esa parte.
+  testWidgets('la politica declara la transferencia al exterior', (
+    tester,
+  ) async {
+    await openDocument(tester, 'Política de privacidad');
+
+    // Se busca la frase del chatbot, no "fuera de Colombia" a secas: el
+    // apartado 11 lo dice dos veces y un `findsOneWidget` fallaría por algo que
+    // está bien.
+    expect(
+      find.textContaining('servidores de Google ubicados fuera de Colombia'),
       findsOneWidget,
     );
-    // El documento tiene que decir que la conversacion sale del pais: es la
-    // parte que mas se olvida y la que mas reclama la SIC.
-    expect(find.textContaining('fuera de Colombia'), findsOneWidget);
+    expect(find.textContaining('artículo 26'), findsOneWidget);
   });
 
-  testWidgets('Terminos y condiciones abre su documento', (tester) async {
+  // El aviso de que los datos de empresa son marcadores de posición. Sin él,
+  // un consumidor leería "NIT: 000.000.000-0" creyendo que es el real.
+  testWidgets('el documento avisa que faltan los datos de la empresa', (
+    tester,
+  ) async {
+    await openDocument(tester, 'Términos y condiciones');
+
+    expect(find.textContaining('pendiente de completar'), findsOneWidget);
+    expect(find.byIcon(Icons.warning_amber_outlined), findsOneWidget);
+  });
+
+  testWidgets('Términos y condiciones abre su documento', (tester) async {
     await _pumpFooter(tester);
 
-    await tester.tap(find.text('Terminos y condiciones'));
+    await tester.tap(find.text('Términos y condiciones'));
     await tester.pumpAndSettle();
 
     expect(find.byType(ContentScreen), findsOneWidget);
-    expect(find.textContaining('Productos y disponibilidad'), findsOneWidget);
+    expect(
+      find.textContaining('Productos e información suministrada'),
+      findsWidgets,
+    );
+    expect(find.textContaining('Medios de pago'), findsWidgets);
+    expect(find.textContaining('PQRS y canales de atención'), findsWidgets);
   });
 
   testWidgets('Sobre nosotros abre su documento', (tester) async {
@@ -136,7 +187,63 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ContentScreen), findsOneWidget);
-    expect(find.textContaining('Que puedes hacer aqui'), findsOneWidget);
+    expect(find.textContaining('Qué puedes hacer aquí'), findsWidgets);
+  });
+
+  // El índice de la pantalla se arma desde `document.sections` y salta con
+  // `Scrollable.ensureVisible`. Si el índice no existiera o no saltara, en un
+  // documento de treinta secciones el usuario no encontraría nada.
+  testWidgets('el indice salta a la seccion elegida', (tester) async {
+    await openDocument(tester, 'Términos y condiciones');
+
+    expect(find.text('CONTENIDO'), findsOneWidget);
+    expect(
+      find.text('9. Garantía legal'),
+      findsNWidgets(2),
+      reason: 'el título aparece en el índice y en el cuerpo',
+    );
+
+    // Al abrir el documento el apartado 9 está lejos, más allá de la pantalla.
+    final cuerpo = find.textContaining('Plazo: la garantía empieza a correr');
+    expect(cuerpo, findsOneWidget);
+    expect(
+      tester.getTopLeft(cuerpo).dy,
+      greaterThan(800),
+      reason: 'debe estar fuera del viewport antes del salto',
+    );
+
+    // La entrada del índice para el apartado 9 también está bajo el pliegue: en
+    // un teléfono de 800px el índice completo no cabe. Hay que bajarlo antes
+    // de tocarlo, igual que haría el dedo del usuario.
+    final entrada = find.text('9. Garantía legal').first;
+    await tester.ensureVisible(entrada);
+    await tester.pumpAndSettle();
+
+    await tester.tap(entrada);
+    await tester.pumpAndSettle();
+
+    // Después del salto el cuerpo de esa sección queda pegado al AppBar.
+    expect(
+      tester.getTopLeft(cuerpo).dy,
+      lessThan(400),
+      reason: 'el índice debe dejar la sección elegida cerca del AppBar',
+    );
+
+    // Y el título de la sección quedó arriba, no en la posición que tenía antes
+    // del salto.
+    expect(
+      tester.getTopLeft(find.text('9. Garantía legal').last).dy,
+      lessThan(200),
+    );
+  });
+
+  // Con un documento corto, un índice de tres líneas es ruido que empuja el
+  // contenido real hacia abajo.
+  testWidgets('el indice aparece solo cuando compensan los apartados', (
+    tester,
+  ) async {
+    await openDocument(tester, 'Sobre nosotros');
+    expect(find.text('CONTENIDO'), findsOneWidget);
   });
 
   testWidgets('Carrito navega a la pantalla del carrito', (tester) async {

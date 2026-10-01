@@ -48,15 +48,15 @@ class AppConfig {
 
   /// Correo de soporte que abre el enlace "Contacto" del footer.
   ///
-  /// OJO: el valor por defecto es un marcador de posicion. Antes de publicar en
-  /// Play Store hay que confirmar el dominio real y, si cambia, compilar con
-  /// `--dart-define=KRONIO_SUPPORT_EMAIL=contacto@dominio real`.
+  /// Es el mismo correo que aparece en los documentos legales, asi que cambiarlo
+  /// en un solo lado deja el resto mintiendo. Si lo cambias, recompila con
+  /// `--dart-define=KRONIO_SUPPORT_EMAIL=correo@real`.
   ///
   /// Es lo que permite que "Contacto" tenga funcionalidad de verdad (abrir el
   /// cliente de correo) en vez de un dialogo que dice que no hay nada.
   static const String supportEmail = String.fromEnvironment(
     'KRONIO_SUPPORT_EMAIL',
-    defaultValue: 'soporte@kroniomarket.co',
+    defaultValue: 'kroniomarket@gmail.com',
   );
 
   // ---------------------------------------------------------------------------
@@ -70,58 +70,94 @@ class AppConfig {
   //
   // Compilalos asi:
   //   flutter build apk --release \
-  //     --dart-define=KRONIO_LEGAL_NAME="..." \
-  //     --dart-define=KRONIO_LEGAL_NIT="..." \
-  //     --dart-define=KRONIO_LEGAL_ADDRESS="..." \
-  //     --dart-define=KRONIO_LEGAL_CITY="..." \
-  //     --dart-define=KRONIO_LEGAL_PHONE="..." \
-  //     --dart-define=KRONIO_REPRESENTATIVE="..." \
-  //     --dart-define=KRONIO_REPRESENTATIVE_ID="..."
+  //     --dart-define=KRONIO_LEGAL_NIT="900.123.456-7" \
+  //     --dart-define=KRONIO_LEGAL_ADDRESS="Calle 100 # 20-30" \
+  //     --dart-define=KRONIO_LEGAL_PHONE="+57 300 123 4567" \
+  //     --dart-define=KRONIO_REPRESENTATIVE="Nombre del representante"
   //
-  // Los valores por defecto estan vacios a proposito: si un documento legal
-  // muestra un hueco, se nota de inmediato. Poner un dato inventado seria peor
-  // que no poner nada, porque un NIT falso es un problema legal.
+  // Sin `--dart-define` quedan los valores de ejemplo de abajo, que son
+  // marcadores de posicion propositados. `_isPlaceholder` los reconoce y los
+  // documentos los muestran como "[pendiente de configurar]" en vez de
+  // publicarlos como si fueran ciertos: un NIT de ejemplo mostrado a un
+  // consumidor es una afirmacion falsa con apariencia legal, que es peor que
+  // un hueco visible. Ver `hasCompleteLegalData`.
   // ---------------------------------------------------------------------------
 
-  /// Razon social o nombre del responsable del tratamiento.
-  static const String legalName = String.fromEnvironment('KRONIO_LEGAL_NAME');
+  /// NIT de la empresa.
+  ///
+  /// Formato colombiano con puntos y guion: `900.123.456-7`.
+  static const String legalNit = String.fromEnvironment(
+    'KRONIO_LEGAL_NIT',
+    defaultValue: '000.000.000-0',
+  );
 
-  /// NIT de la empresa, sin guiones ni puntos.
-  static const String legalNit = String.fromEnvironment('KRONIO_LEGAL_NIT');
-
-  /// Direccion fisica donde se puede ejercer el derecho de queja.
+  /// Direccion fisica. Es la "direccion de notificacion judicial" que exige el
+  /// literal a) del articulo 50 de la Ley 1480 de 2011, asi que debe incluir
+  /// calle y numero, no solo la ciudad.
   static const String legalAddress = String.fromEnvironment(
     'KRONIO_LEGAL_ADDRESS',
+    defaultValue: '[direccion pendiente de configurar]',
   );
 
   /// Ciudad y departamento.
-  static const String legalCity = String.fromEnvironment('KRONIO_LEGAL_CITY');
+  static const String legalCity = String.fromEnvironment(
+    'KRONIO_LEGAL_CITY',
+    defaultValue: 'Bogota, D.C., Colombia',
+  );
 
-  /// Telefono de contacto.
-  static const String legalPhone = String.fromEnvironment('KRONIO_LEGAL_PHONE');
+  /// Telefono de contacto, con indicativo de pais.
+  static const String legalPhone = String.fromEnvironment(
+    'KRONIO_LEGAL_PHONE',
+    defaultValue: '+57 (1) 555-1234',
+  );
 
   /// Nombre de quien responde por los datos personales.
   static const String representative = String.fromEnvironment(
     'KRONIO_REPRESENTATIVE',
+    defaultValue: '[representante legal pendiente de configurar]',
   );
 
   /// Tipo y numero de documento del representante.
   static const String representativeId = String.fromEnvironment(
     'KRONIO_REPRESENTATIVE_ID',
+    defaultValue: '',
   );
 
-  /// `true` cuando los datos de la empresa estan completos.
+  /// Nombres que son marcadores de posicion y no datos reales.
   ///
-  /// Lo usan los documentos legales para decidir si se pueden publicar o si hay
-  /// que avisar de que faltan datos. Un documento con huecos es peor que uno
-  /// ausente: un aviso de privacidad sin llenar no sirve ni como borrador.
+  /// Se comparan sin espacios y en minusculas para que cambiar el formato del
+  /// marcador no rompa la deteccion. `000.000.000-0` es el NIT de ejemplo que
+  /// aparece en toda guia de la SIC y `555-1234` es el telefono de ejemplo
+  /// internacional: los dos son reconocibles, y por eso sirven de señal.
+  static const Set<String> _placeholderValues = {
+    '000.000.000-0',
+    '+57(1)555-1234',
+    '[direccionpendientedeconfigurar]',
+    '[representantelegalpendientedeconfigurar]',
+    '',
+  };
+
+  /// `true` si [value] sigue siendo un marcador de posicion.
+  static bool _isPlaceholder(String value) =>
+      _placeholderValues.contains(value.replaceAll(' ', '').toLowerCase());
+
+  /// El dato si es real, o `[pendiente de configurar]` si no.
+  ///
+  /// Lo usan los documentos legales. Devolver el marcador en vez del valor de
+  /// ejemplo es deliberado: un hueco se nota y se arregla, un NIT falso se
+  /// publica.
+  static String legalOrPending(String value) =>
+      _isPlaceholder(value) ? '[pendiente de configurar]' : value;
+
+  /// `true` cuando los datos de la empresa ya son reales.
+  ///
+  /// Lo usan la pantalla de contenido y los tests para decidir si el documento
+  /// se publica tal cual o si debe avisar que esta pendiente de completar.
   static bool get hasCompleteLegalData =>
-      legalName.isNotEmpty &&
-      legalNit.isNotEmpty &&
-      legalAddress.isNotEmpty &&
-      legalCity.isNotEmpty &&
-      legalPhone.isNotEmpty &&
-      representative.isNotEmpty;
+      !_isPlaceholder(legalNit) &&
+      !_isPlaceholder(legalAddress) &&
+      !_isPlaceholder(legalPhone) &&
+      !_isPlaceholder(representative);
 
   /// Tiempo maximo que se espera el arranque antes de montar la app igual.
   ///

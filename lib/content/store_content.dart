@@ -4,31 +4,22 @@
 /// `/content`, `/settings`, `/legal`, `/faq` responden 404), asi que el texto
 /// vive aqui y se compila dentro de la app.
 ///
-/// Cada documento se armó leyendo lo que el sistema hace de verdad, no lo que
-/// seria ideal. En concreto:
+/// Los dos documentos legales ([termsContent] y [privacyContent]) son el texto
+/// redactado para Kronio Market, con citas al articulo 50 de la Ley 1480 de
+/// 2011 (literal a, identidad del proveedor), a la Ley 2439 de 2024 que lo
+/// modifica, y a la Ley 1581 de 2012 con sus decretos reglamentarios. Los datos
+/// que cambian de una empresa a otra (razon social, NIT, direccion, telefono,
+/// representante) no estan escritos a mano: salen de `AppConfig`, que los lee
+/// con `--dart-define` para que no queden en el repositorio y para poder
+/// corregirlos sin volver a firmar el APK.
 ///
-/// - El catalogo, el carrito, los pedidos y las ordenes de envio salen de la
-///   API de Kronio Market (NestJS + PostgreSQL + Redis).
-/// - Los pedidos que pasan a produccion se crean como ordenes reales en Dropi,
-///   que es quien despacha. Por eso el documento de datos habla de Dropi como
-///   transferencia y como encargado del tratamiento del envio.
-/// - El chatbot de ventas (KronioBot) manda conversaciones a Google Gemini,
-///   asi que la conversacion es un dato personal que viaja a un tercero.
-/// - Las imagenes de producto se sirven por CloudFront.
+/// NOTA SOBRE ACENTOS
 ///
-/// ADVERTENCIA IMPORTANTE
-///
-/// Estos textos estan redactados siguiendo la estructura que exigen la Ley 1581
-/// de 2012 (proteccion de datos), la Ley 1712 de 2014 (comercio electronico) y
-/// la Ley 1480 de 2011 (proteccion al consumidor), pero **no son un documento
-/// legal validado**. Un abogado debe revisarlos y ajustarlos a la situacion
-/// real de la empresa antes de publicar la app. Lo que hay aqui es una base
-/// solida y bien estructurada, no un dictamen.
-///
-/// Los datos de la empresa (razon social, NIT, direccion, representante) se
-/// inyectan con `--dart-define` para no dejarlos en el repositorio. Si no estan
-/// configurados, los documentos avisan en pantalla en vez de mostrar huecos
-/// silenciosos. Ver `AppConfig.hasCompleteLegalData`.
+/// A diferencia del resto del proyecto, este archivo si usa tildes y la "ñ".
+/// Es una excepcion deliberada: el texto es un documento legal que se lee en
+/// pantalla completa y "Terminos", "articulo" o "informacion" se leen como
+/// errores. `test/content/store_content_test.dart` vigila que el archivo no
+/// sufra sustituciones de codificacion, que es como se corromperia.
 library;
 
 import '../config/app_config.dart';
@@ -58,26 +49,40 @@ class ContentDocument {
   final List<ContentSection> sections;
 }
 
-/// Bloque de datos del responsable, comun a los documentos legales.
+/// Nombre comercial de la tienda, tal como se publica en los documentos.
+const String storeName = 'Kronio Market';
+
+// -----------------------------------------------------------------------------
+// Bloques de datos que se repiten en los documentos
+// -----------------------------------------------------------------------------
+
+/// Bloque de "informacion del proveedor", exigido por el literal a) del
+/// articulo 50 de la Ley 1480 de 2011.
 ///
-/// Se arma desde [AppConfig] en vez de estar escrito a mano para que cambiar la
-/// razon social no obligue a tocar este archivo.
-ContentSection get _responsibleSection => ContentSection(
-  'Responsable del tratamiento',
-  '${_orPending(AppConfig.legalName, 'Razon social pendiente de configurar')}\n'
-      'NIT: ${_orPending(AppConfig.legalNit, 'pendiente')}\n'
-      '${_orPending(AppConfig.legalAddress, 'Direccion pendiente')}, '
-      '${_orPending(AppConfig.legalCity, 'Ciudad pendiente')}\n'
-      'Telefono: ${_orPending(AppConfig.legalPhone, 'pendiente')}\n'
-      'Correo: ${AppConfig.supportEmail}\n'
-      'Responsable: ${_orPending(AppConfig.representative, 'pendiente')}',
-);
+/// Se arma con [AppConfig] y no con texto fijo: el NIT y la direccion son los
+/// datos que mas cambian, y tenerlos escritos a mano en dos documentos es la
+/// forma mas rapida de que dejen de coincidir entre si.
+String get _providerBlock =>
+    'Nombre o razón social: $storeName.\n'
+    'NIT: ${AppConfig.legalOrPending(AppConfig.legalNit)}.\n'
+    'Dirección de notificación judicial: '
+    '${AppConfig.legalOrPending(AppConfig.legalAddress)}, '
+    '${AppConfig.legalCity}.\n'
+    'Teléfono: ${AppConfig.legalOrPending(AppConfig.legalPhone)}.\n'
+    'Correo electrónico: ${AppConfig.supportEmail}.';
 
-/// Devuelve el valor, o un texto que deja claro que falta configurarlo.
-String _orPending(String value, String pending) =>
-    value.isEmpty ? '[$pending]' : value;
-
-/// Datos basicos de la empresa: se usa en varios documentos.
+/// Bloque de canales de atencion (PQRS), exigido por el literal g) del
+/// articulo 50: debe existir en el mismo medio en que se vende, con radicado y
+/// seguimiento.
+///
+/// El aviso de que cada PQRS genera radicado queda acompanado de un "y a mas
+/// tardar", porque un compromiso de plazo que el sistema no cumple es peor que
+/// no comprometerlo.
+String get _contactBlock =>
+    'Correo electrónico: ${AppConfig.supportEmail}\n'
+    'Teléfono: ${AppConfig.legalOrPending(AppConfig.legalPhone)}\n'
+    'Dirección: ${AppConfig.legalOrPending(AppConfig.legalAddress)}, '
+    '${AppConfig.legalCity}';
 
 // -----------------------------------------------------------------------------
 // Sobre nosotros
@@ -86,163 +91,42 @@ String _orPending(String value, String pending) =>
 /// Que es Kronio Market y como funciona.
 final aboutContent = ContentDocument(
   title: 'Sobre nosotros',
-  updatedAt: 'Octubre de 2026',
+  updatedAt: 'Septiembre de 2026',
   intro:
-      'Kronio Market es una tienda en linea orientada al mercado colombiano. '
-      'Traemos productos de distintos proveedores en un solo catalogo, con '
+      'Kronio Market es una tienda en línea orientada al mercado colombiano. '
+      'Traemos productos de distintos proveedores en un solo catálogo, con '
       'precios y descuentos visibles antes de agregar algo al carrito.',
   sections: [
     ContentSection(
-      'Que puedes hacer aqui',
-      'Navegar el catalogo por categorias, buscar productos, ver el detalle '
-          'con su galeria de imagenes y video, agregar al carrito, ajustar '
-          'cantidades segun el stock disponible, crear una cuenta, registrar '
-          'un pedido y seguir su envio.\n\n'
+      'Qué puedes hacer aquí',
+      'Navegar el catálogo por categorías, buscar productos, ver el detalle '
+          'con su galería de imágenes y video, agregar al carrito, ajustar '
+          'cantidades según el stock disponible, crear una cuenta, registrar '
+          'un pedido y seguir su envío.\n\n'
           'El chatbot KronioBot responde preguntas sobre stock, precios y '
           'estado de tus pedidos, y puede mostrarte productos relacionados '
           'mientras conversa.',
     ),
     ContentSection(
-      'Como obtenemos los productos',
+      'Cómo obtenemos los productos',
       'Trabajamos con proveedores verificados mediante Dropi, una plataforma '
           'colombiana de dropshipping. Eso significa que no siempre '
           'almacenamos nosotros: cuando confirmas un pedido, se genera una '
-          'orden de envio con el proveedor correspondiente, que es quien '
+          'orden de envío con el proveedor correspondiente, que es quien '
           'prepara y despacha.\n\n'
           'Por eso el precio y la disponibilidad que ves pueden cambiar en '
-          'cualquier momento; lo que muestra la app es la foto mas reciente '
+          'cualquier momento; lo que muestra la app es la foto más reciente '
           'que tenemos del inventario del proveedor.',
     ),
     ContentSection(
-      'Pagos y envios',
-      'El pago se realiza dentro de la app al confirmar el pedido. Cada pedido '
-          'tiene un numero de seguimiento que puedes consultar en cualquier '
-          'momento, y recibes confirmaciones por correo electronico en cada '
-          'cambio de estado.',
+      'Pagos y envíos',
+      'El pago es contra entrega: pagas el valor total en efectivo al '
+          'transportador en el momento en que recibes tus productos. Cada '
+          'pedido tiene un número de seguimiento que puedes consultar en '
+          'cualquier momento y recibes confirmaciones por correo electrónico '
+          'en cada cambio de estado.',
     ),
-    _responsibleSection,
-  ],
-);
-
-// -----------------------------------------------------------------------------
-// Politica de privacidad
-// -----------------------------------------------------------------------------
-
-/// Aviso de privacidad.
-///
-/// Estructurado como lo pide la Ley 1581 de 2012: responsable, tratamiento,
-/// finalidad, principios, derechos del titular y transferencias.
-final privacyContent = ContentDocument(
-  title: 'Politica de privacidad',
-  updatedAt: 'Octubre de 2026',
-  intro:
-      'Kronio Market, con las tareas de tratamiento de datos personales '
-      'descritas en este documento, tratara los datos personales de los '
-      'usuarios de esta app. Esta politica explica que datos manejamos, con '
-      'que finalidad y que derechos tienes sobre ellos.',
-  sections: [
-    _responsibleSection,
-
-    ContentSection(
-      '1. Datos personales que tratamos',
-      'Datos que nos llega al crear una cuenta:\n'
-          '- Nombre.\n'
-          '- Correo electronico.\n'
-          '- Contrasena, que viaja cifrada por HTTPS, se guarda cifrada en el '
-          'servidor con bcrypt y nunca se guarda en tu dispositivo.\n'
-          '- Tipo y numero de documento del representante legal, unicamente '
-          'cuando realizas una compra.\n'
-          '- Direccion de envio y datos de la persona que recibe, al registrar '
-          'un pedido.\n\n'
-          'Datos que genera tu uso de la app:\n'
-          '- Historial de pedidos y estado de los envios.\n'
-          '- Contenido de tu carrito, que se guarda en tu propio dispositivo y '
-          'no se sincroniza con nuestros servidores.\n'
-          '- Registros tecnicos de seguridad: direccion IP, marca de tiempo y '
-          'conteo de intentos fallidos de inicio de sesion.\n\n'
-          'Datos que genera el chatbot:\n'
-          '- El texto que escribes en el chat con KronioBot y las respuestas '
-          'que genera. Las conversaciones se guardan para que puedas '
-          'retomarlas.',
-    ),
-
-    ContentSection(
-      '2. Con que finalidad tratamos los datos',
-      '- Crear y mantener tu cuenta, y autenticar tu inicio de sesion.\n'
-          '- Gestionar tu carrito y registrar tus pedidos.\n'
-          '- Procesar pagos y emitir los comprobantes correspondientes.\n'
-          '- Generar y seguir las ordenes de envio con los proveedores.\n'
-          '- Enviarte confirmaciones y notificaciones sobre el estado de tus '
-          'pedidos por correo electronico.\n'
-          '- Prestar soporte y atender tus solicitudes por el chatbot o por '
-          'correo.\n'
-          '- Cumplir obligaciones legales, contables y tributarias.\n'
-          '- Prevenir fraude y proteger la seguridad de la plataforma, '
-          'incluido el bloqueo temporal de cuentas con cinco intentos fallidos '
-          'de acceso.',
-    ),
-
-    ContentSection(
-      '3. Principios del tratamiento',
-      'Tratamos los datos personales con los principios de finalidad, '
-          'libertad, veracidad, calidad, transparencia, acceso y restriction, '
-          'seguridad, confidencialidad e integridad, de acuerdo con el '
-          'articulo 4 de la Ley 1581 de 2012. No tratamos datos de menores de '
-          'edad.',
-    ),
-
-    ContentSection(
-      '4. Durante cuanto tiempo y por que medio',
-      'Los datos de cuenta y los pedidos se conservan mientras tu cuenta este '
-          'activa y por los plazos legales exigidos por la normacion '
-          'colombiana, especialmente los contables y tributarios. Al solicitar '
-          'el cierre de tu cuenta eliminamos los datos que no tengamos '
-          'obligacion legal de conservar.\n\n'
-          'Puedes ejercer tus derechos escribiendo a ${AppConfig.supportEmail} '
-          'desde el correo con el que te registraste.',
-    ),
-
-    ContentSection(
-      '5. Transferencias a terceros y encargados del tratamiento',
-      '- Dropi (dropshipping colombiano): recibe la orden de envio con el '
-          'producto, la direccion de entrega y los datos de la persona que '
-          'recibe. Actua como encargado del tratamiento.\n'
-          '- Google (Gemini): el chatbot de ventas envia el texto de tu '
-          'conversacion a los servidores de Google para generar la respuesta.\n'
-          '- Amazon CloudFront: sirve las imagenes de producto; al pedirlas, '
-          'recibe tu direccion IP y los datos tecnicos de la conexion.\n'
-          '- Proveedores de pago y de correo electronico, en la medida '
-          'necesaria para procesar pedidos y enviarte notificaciones.\n'
-          '- Autoridades publicas, cuando exista una obligacion legal que nos '
-          'obligue a entregar informacion.',
-    ),
-
-    ContentSection(
-      '6. Tus derechos como titular',
-      'Puedes conocer, consultar, actualizar, corregir y suprimir tus datos, '
-          'revocar tu consentimiento y pedir informacion sobre el uso que le '
-          'damos a ellos, escribiendo a ${AppConfig.supportEmail} y '
-          'acreditando tu identidad. Tienes derecho a reclamar ante la '
-          'Superintendencia de Industria y Comercio (SIC) si consideras que '
-          'hemos vulnerado tus derechos.',
-    ),
-
-    ContentSection(
-      '7. Seguridad',
-      'Usamos cifrado en transito (HTTPS), contrasenas cifradas con bcrypt, '
-          'sesiones firmadas mediante tokens (JWT), proteccion CSRF, control de '
-          'acceso por turnos y bloqueo de cuentas tras cinco intentos '
-          'fallidos. Ningun metodo es infalible, pero hacemos lo razonablemente '
-          'posible para proteger tus datos.',
-    ),
-
-    ContentSection(
-      '8. Cambios en esta politica',
-      'Podemos actualizar esta politica para reflejar cambios en la '
-          'plataforma o en la normatividad. La fecha de actualizacion siempre '
-          'aparece al inicio del documento y los cambios relevantes se '
-          'anunciaran dentro de la app.',
-    ),
+    ContentSection('Información del proveedor', _providerBlock),
   ],
 );
 
@@ -250,266 +134,532 @@ final privacyContent = ContentDocument(
 // Terminos y condiciones
 // -----------------------------------------------------------------------------
 
-/// Terminos y condiciones.
+/// Terminos y condiciones de uso y compra.
 ///
-/// Incluye las clausulas que la Ley 1480 de 2011 y la Ley 1712 de 2014
-/// consideran obligatorias en comercio electronico.
+/// Aplica el articulo 48 de la Ley 1480 de 2011 (condiciones generales del
+/// contrato en ventas a distancia) y los literales a, b, c, g y h del
+/// articulo 50, en la redaccion que les dio la Ley 2439 de 2024.
 final termsContent = ContentDocument(
-  title: 'Terminos y condiciones',
-  updatedAt: 'Octubre de 2026',
+  title: 'Términos y condiciones',
+  updatedAt: 'Septiembre de 2026',
   intro:
-      'Estos terminos y condiciones regulan el uso de la app Kronio Market y la '
-      'compra de productos a traves de ella. Al registrarte y realizar un '
-      'pedido aceptas lo que sigue. Si no estas de acuerdo con alguno de estos '
-      'puntos, te pedimos que no uses la tienda.',
+      'Última actualización: Septiembre de 2026. Vigentes de conformidad con la '
+      'Ley 1480 de 2011 (Estatuto del Consumidor), la Ley 2439 de 2024 y el '
+      'Decreto 587 de 2016.\n\n'
+      'Estos términos y condiciones regulan la relación entre $storeName y los '
+      'consumidores que utilizan nuestro sitio de comercio electrónico. Al '
+      'momento de confirmar una compra, usted acepta de manera expresa e '
+      'inequívoca las condiciones generales del contrato (artículo 48 de la Ley '
+      '1480 de 2011), dejando constancia de la aceptación mediante el registro '
+      'de su transacción.\n\n'
+      'La Tienda se reserva el derecho de modificar estos términos en cualquier '
+      'momento. Los cambios entrarán en vigor después de su publicación en el '
+      'sitio y no afectarán las órdenes ya confirmadas. Le recomendamos revisar '
+      'periódicamente esta página.',
   sections: [
-    _responsibleSection,
-
     ContentSection(
-      '1. Sobre tu cuenta',
-      'Registrarte requiere un correo valido, un nombre y una contrasena. Eres '
-          'responsable de mantener tu contrasena segura y de todo lo que se '
-          'haga con tu cuenta. Cierra sesion si usas un dispositivo '
-          'compartido. Podemos suspender cuentas que se usen de forma '
-          'fraudulenta o que violen estos terminos.',
+      '1. Información del proveedor',
+      'Conforme al literal a) del artículo 50 de la Ley 1480 de 2011, el '
+          'proveedor que ofrece productos mediante comercio electrónico debe '
+          'informar de forma cierta, fidedigna, suficiente, clara, accesible y '
+          'actualizada su identidad. De conformidad con lo anterior:\n\n'
+          '$_providerBlock\n\n'
+          'La entrega o distribución de productos con descuento, rebaja o con '
+          'carácter promocional está sujeta a las reglas contenidas en la Ley '
+          '1480 de 2011.',
     ),
-
     ContentSection(
-      '2. Productos y disponibilidad',
-      'Los productos se ofrecen mediante proveedores verificados a traves de '
-          'Dropi. El stock y el precio que muestra la app se actualizan desde '
-          'el inventario del proveedor y pueden cambiar en cualquier momento, '
-          'aun antes de que confirmes un pedido. Si un producto ya no esta '
-          'disponible o su precio cambio, te lo avisaremos antes de cobrarte y '
-          'podras cancelar sin costo.',
+      '2. Aceptación de los términos',
+      'Estos términos y condiciones regulan la relación entre $storeName y los '
+          'consumidores que utilizan nuestro sitio de comercio electrónico. Al '
+          'momento de confirmar una compra, usted acepta de manera expresa e '
+          'inequívoca las condiciones generales del contrato (artículo 48 de la '
+          'Ley 1480 de 2011), dejando constancia de la aceptación mediante el '
+          'registro de su transacción.\n\n'
+          'La Tienda se reserva el derecho de modificar estos términos en '
+          'cualquier momento. Los cambios entrarán en vigor después de su '
+          'publicación en el sitio y no afectarán las órdenes ya confirmadas. '
+          'Le recomendamos revisar periódicamente esta página.',
     ),
-
     ContentSection(
-      '3. Precios y pagos',
-      'Los precios se exhiben en pesos colombianos e incluyen los impuestos '
-          'aplicables salvo que se indique lo contrario. El pago se realiza '
-          'dentro de la app al confirmar el pedido. Los medios de pago '
-          'aceptados son los habilitados en la plataforma. Si el pago falla, el '
-          'pedido no se confirma y no se realizo ningun cargo.',
+      '3. Productos e información suministrada',
+      'De acuerdo con el literal b) del artículo 50 de la Ley 1480 de 2011, '
+          'suministramos información cierta, fidedigna, suficiente, clara y '
+          'actualizada respecto de los productos ofrecidos, incluyendo '
+          'características, materiales, usos, restricciones de uso y cuidado, '
+          'propiedades y calidad, de forma que el consumidor pueda hacerse una '
+          'representación lo más aproximada a la realidad del producto.\n\n'
+          'Las imágenes son de carácter ilustrativo. Hacemos esfuerzos '
+          'razonables por mostrar descripciones y fotografías precisas, pero '
+          'los colores y detalles pueden variar según las condiciones de cada '
+          'pantalla.',
     ),
-
     ContentSection(
-      '4. Pedidos, envios y entrega',
-      'Al confirmar un pedido y quedar pagado, generamos una orden de envio con '
-          'el proveedor correspondiente. Recibiras un numero de seguimiento que '
-          'puedes consultar desde la app o por correo electronico.\n\n'
-          'El plazo de entrega depende del proveedor y de la transportadora y '
-          'se informa al momento de generar el envio. Si el pedido no puede '
-          'entregarse por causas imputables a la transportadora, gestionaremos '
-          'su devolucion o reenvio sin costo adicional.',
+      '4. Precios e impuestos',
+      'Todos los precios están expresados en Pesos Colombianos (COP) e incluyen '
+          'los impuestos, costos y gastos necesarios para adquirir el producto. '
+          'En caso de aplicarse gastos de envío, estos se informan de forma '
+          'separada y clara antes de finalizar la transacción (literal c) del '
+          'artículo 50 de la Ley 1480 de 2011).\n\n'
+          'Los precios están sujetos a cambios sin previo aviso, pero los '
+          'cambios no afectarán las órdenes ya confirmadas. En caso de error '
+          'manifiesto en el precio publicado, la Tienda podrá cancelar la orden '
+          'y devolver la totalidad del dinero pagado.',
     ),
-
     ContentSection(
-      '5. Derecho de retracto y devoluciones',
-      'Conforme al articulo 8 de la Ley 1480 de 2011 y al Decreto 1074 de 2015, '
-          'el consumidor puede ejercer el derecho de retracto dentro de los '
-          'cinco (5) dias habiles siguientes a la entrega del producto, sin '
-          'necesidad de justificar el motivo.\n\n'
-          'Para ejercerlo, debes comunicar tu solicitud a '
-          '${AppConfig.supportEmail} indicando el numero de pedido. El producto '
-          'debe devolverse sin uso, en su empaque original y con sus '
-          'accesorios. El reembolso se realizara dentro de los quince (15) '
-          'dias habiles despues de recibido el producto.\n\n'
-          'El derecho de retracto no aplica a productos personalizados, ni a '
-          'los casos de exclusion previstos en la ley (productos de higiene '
-          'personal o de salud con el sello abierto, entre otros).',
+      '5. Proceso de compra y resumen del pedido',
+      'Antes de finalizar la transacción, le presentamos un resumen del pedido '
+          'con la descripción completa de los bienes, el precio individual de '
+          'cada uno, el precio total y, de ser aplicable, los costos de envío. '
+          'Usted puede verificar, modificar o cancelar la transacción antes de '
+          'concluirla. La aceptación de la transacción es expresa, '
+          'inequívoca y verificable.\n\n'
+          'Concluida la transacción, le remitimos a más tardar el día '
+          'calendario siguiente un acuse de recibo del pedido con la '
+          'información del tiempo de entrega, precio exacto, impuestos, gastos '
+          'de envío y la forma en que se realizó el pago. También recibirá el '
+          'número de seguimiento de su orden una vez sea despachada.',
     ),
-
     ContentSection(
-      '6. Garantias',
-      'Los productos tienen la garantia legal vigente en Colombia: garantia de '
-          'satisfaccion para productos no perecederos y garantia de la '
-          'producto defectuoso. Para reportar un defecto de un producto, '
-          'escribe a ${AppConfig.supportEmail} indicando el numero de pedido y '
-          'describe el problema; resolvero segun la via de garantia legal o por '
-          'cambio o devolucion.',
+      '6. Medios de pago',
+      'El método de pago disponible en la Tienda es el pago contra entrega: '
+          'usted paga el valor del pedido en efectivo en el momento en que '
+          'recibe sus productos.\n\n'
+          'Pago contra entrega (efectivo): se cancela la totalidad del pedido, '
+          'incluidos los gastos de envío, directamente al transportador al '
+          'momento de la entrega. No se requiere ningún pago anticipado para '
+          'realizar la compra.\n\n'
+          'Por la naturaleza de este método de pago, no procesamos pagos con '
+          'tarjetas o plataformas de pago en línea, y tampoco almacenamos datos '
+          'de medios de pago en nuestros servidores.',
     ),
-
     ContentSection(
-      '7. Uso permitido y propiedad intelectual',
-      'No puedes usar la tienda para actividades ilicitas, realizar pedidos '
-          'falsos o intentar acceder a cuentas ajenas. El software, el diseño y '
-          'la marca Kronio Market son propiedad de sus titulares y algunos usos '
-          'del contenido (como realizar pedidos para revender) requieren '
-          'autorizacion previa por escrito.',
+      '7. Envíos y entrega',
+      'Realizamos envíos a todo el territorio colombiano. El plazo de entrega '
+          'se informa de manera previa a la finalización de la transacción. A '
+          'falta de plazo pactado, el pedido será entregado a más tardar dentro '
+          'de los treinta (30) días calendario siguientes a la recepción de su '
+          'pedido, de conformidad con el literal h) del artículo 50 de la Ley '
+          '1480 de 2011.\n\n'
+          'Si la entrega supera el plazo pactado o los treinta (30) días '
+          'calendario, o si el producto adquirido no se encuentra disponible, '
+          'usted podrá resolver el contrato unilateralmente y obtener la '
+          'devolución de todas las sumas pagadas sin retención o descuento '
+          'alguno, en un plazo máximo de quince (15) días calendario conforme '
+          'a la Ley 2439 de 2024.\n\n'
+          'Es responsabilidad del comprador suministrar una dirección de envío '
+          'correcta y completa. Los costos de reenvío por dirección incorrecta '
+          'o por no recepción del pedido en los términos pactados serán '
+          'asumidos por el comprador.',
     ),
-
     ContentSection(
-      '8. Responsabilidad',
-      'Procuramos que la app y el sitio funcionen correctamente, pero no '
-          'garantizamos que esten libres de interrupciones. No respondemos por '
-          'daños derivados de lucro cesante o de lucro perdido. Nuestra '
-          'responsabilidad ante el consumidor por fallos en el pago o en la '
-          'entrega esta sujeta a lo dispuesto en la Ley 1480 de 2011.',
+      '8. Derecho de retracto',
+      'Usted tiene derecho a retractarse de la compra dentro de los cinco (5) '
+          'días hábiles siguientes a la entrega del bien, sin necesidad de '
+          'justificar su decisión.\n\n'
+          'De conformidad con el artículo 47 de la Ley 1480 de 2011, en las '
+          'ventas a distancia o a través de medios electrónicos se entenderá '
+          'pactado el derecho de retracto. En caso de ejercerlo, se resolverá '
+          'el contrato y le reintegraremos el dinero que haya pagado:\n\n'
+          '- El producto debe devolverse por los mismos medios y en las mismas '
+          'condiciones en que lo recibió, con todos sus empaques y accesorios.\n'
+          '- Los costos de transporte y demás que conlleve la devolución serán '
+          'cubiertos por usted, salvo que el defecto corresponda a la calidad o '
+          'idoneidad del producto.\n'
+          '- La devolución del dinero se realizará en un plazo máximo de quince '
+          '(15) días calendario desde el ejercicio del derecho, sin retenciones '
+          'ni descuentos, por el medio que usted elija o por el medio acordado '
+          '(Ley 2439 de 2024, artículo 5). La información de las opciones '
+          'disponibles le será comunicada de forma clara y detallada.\n\n'
+          'Se exceptúa del derecho de retracto, conforme a la ley, los '
+          'siguientes casos:\n\n'
+          '- Contratos de prestación de servicios cuya ejecución haya comenzado '
+          'con su acuerdo.\n'
+          '- Productos confeccionados conforme a las especificaciones del '
+          'consumidor o claramente personalizados.\n'
+          '- Productos que por su naturaleza no puedan ser devueltos o puedan '
+          'deteriorarse o caducar con rapidez.\n'
+          '- Productos perecederos.\n'
+          '- Productos de uso personal de carácter higiénico cuyo sello haya sido '
+          'retirado.\n'
+          '- Productos cuyo precio esté sujeto a fluctuaciones de coeficientes '
+          'del mercado financiero que no puedan ser controladas por el '
+          'proveedor.',
     ),
-
     ContentSection(
-      '9. Modificaciones y terminacion',
-      'Podemos modificar estos terminos para reflejar cambios en la plataforma '
-          'o en la normatividad; los cambios se publicaran en la app. Puedes '
-          'cerrar tu cuenta en cualquier momento escribiendo a '
-          '${AppConfig.supportEmail}, y eso daria por terminado el uso de la '
-          'tienda bajo estos terminos.',
+      '9. Garantía legal',
+      'Todos los productos comercializados cuentan con la garantía legal '
+          'establecida en los artículos 7 y 8 de la Ley 1480 de 2011, que obliga '
+          'al productor y al proveedor a responder por la calidad, idoneidad, '
+          'seguridad y el buen estado y funcionamiento de los productos.\n\n'
+          'Plazo: la garantía empieza a correr desde la entrega del producto al '
+          'consumidor. De no indicarse un término específico, la garantía es de '
+          'un (1) año para productos nuevos y el término de la fecha de '
+          'expiración para productos perecederos.\n\n'
+          'Cobertura: reparación totalmente gratuita de los defectos del bien, '
+          'incluyendo su transporte de ser necesario y el suministro oportuno '
+          'de repuestos. Si el bien no admite reparación, se procederá a su '
+          'reposición o a la devolución del dinero (artículo 11 de la Ley 1480 '
+          'de 2011).\n\n'
+          'No cubre: daños por uso indebido, accidentes, modificaciones no '
+          'autorizadas o desgaste normal. La garantía legal no tendrá '
+          'contraprestación adicional al precio del producto.\n\n'
+          'Para hacer efectiva la garantía, debe presentar la factura o '
+          'comprobante de compra y describir el defecto. Ante los consumidores, '
+          'la responsabilidad recae solidariamente en productores y proveedores '
+          '(artículo 10 de la Ley 1480 de 2011).',
     ),
-
     ContentSection(
-      '10. Ley aplicable y jurisdiccion',
-      'Estos terminos se rigen por las leyes de la Republica de Colombia. '
-          'Cualquier controversia se sometera a la jurisdiccion de los jueces '
-          'competentes del lugar donde se celebrate el contrato, respetando el '
-          'fuero del domicilio del consumidor para las acciones de proteccion '
-          'al consumidor.',
+      '10. Reversión de pagos',
+      'Conforme al artículo 51 de la Ley 1480 de 2011 y al procedimiento del '
+          'Decreto 587 de 2016, usted puede solicitar la reversión del cargo '
+          'realizado cuando la transacción se haya efectuado mediante fraude, el '
+          'producto no haya sido entregado, no corresponda a lo ofrecido o haya '
+          'sido devuelto.\n\n'
+          'Para gestionar su solicitud, contáctenos a través de los canales de '
+          'atención mencionados en la sección 12 y consigne los soportes '
+          'correspondientes. La Tienda orientará el proceso hasta su solución y '
+          'le devolverá las sumas pagadas por el medio acordado dentro de los '
+          'plazos legales.',
+    ),
+    ContentSection(
+      '11. Cambios y devoluciones',
+      'Atendemos solicitudes de cambio o devolución dentro de los plazos '
+          'legales. Si el producto presenta defecto de calidad o no corresponde '
+          'a lo solicitado, cubriremos los costos de transporte de la devolución '
+          'conforme a la garantía legal. En cualquier otro caso, se aplican los '
+          'términos del derecho de retracto descritos en la sección 8.\n\n'
+          'El producto debe devolverse en su estado original, sin uso indebido y '
+          'con la totalidad de sus empaques, accesorios y la factura de compra.',
+    ),
+    ContentSection(
+      '12. PQRS y canales de atención',
+      'De conformidad con el literal g) del artículo 50 de la Ley 1480 de '
+          '2011, ponemos a su disposición canales de fácil acceso que garantizan '
+          'la orientación y asistencia a los consumidores y la trazabilidad de '
+          'las reclamaciones presentadas. Cada petición, queja, reclamo o '
+          'sugerencia (PQRS) genera un número de radicado con fecha y hora, y un '
+          'mecanismo de seguimiento.\n\n'
+          '$_contactBlock\n\n'
+          'También puede acudir directamente a la Superintendencia de Industria '
+          'y Comercio (SIC), autoridad colombiana de protección al consumidor, '
+          'en www.sic.gov.co.',
+    ),
+    ContentSection(
+      '13. Propiedad intelectual',
+      'Todos los contenidos del sitio web, incluyendo textos, imágenes, '
+          'logotipos, diseños, iconos, software y código, son propiedad de '
+          '$storeName o de sus proveedores de contenido y están protegidos por '
+          'las leyes de propiedad intelectual colombianas e internacionales. '
+          'Queda prohibida su reproducción o uso no autorizado.',
+    ),
+    ContentSection(
+      '14. Limitación de responsabilidad',
+      'En la medida máxima permitida por la ley colombiana, la Tienda no será '
+          'responsable por daños indirectos o consecuentes derivados del uso o '
+          'la imposibilidad de usar la plataforma. Nuestra responsabilidad frente '
+          'al consumidor se rige por las normas de protección al consumidor y no '
+          'excluye las garantías y derechos que le asisten por mandato legal.',
+    ),
+    ContentSection(
+      '15. Ley aplicable y jurisdicción',
+      'Estos términos se rigen por las leyes de la República de Colombia, en '
+          'especial por la Ley 1480 de 2011 (Estatuto del Consumidor), su '
+          'normativa reglamentaria y las normas que las modifiquen o adicionen, '
+          'incluida la Ley 2439 de 2024. Las controversias serán conocidas por '
+          'las autoridades competentes de la ciudad de Bogotá, D.C., sin '
+          'perjuicio de las facultades jurisdiccionales de la Superintendencia de '
+          'Industria y Comercio.',
+    ),
+    ContentSection(
+      '16. Contacto',
+      'Para cualquier pregunta, queja o solicitud relacionada con estos '
+          'términos, contáctenos a través de los canales indicados en la sección '
+          '12. También puede consultar nuestra Política de Privacidad.',
     ),
   ],
 );
 
 // -----------------------------------------------------------------------------
-// Aviso de privacidad y tratamiento de datos (Ley 1581 de 2012)
+// Politica de privacidad
 // -----------------------------------------------------------------------------
 
-/// Aviso de privacidad y autorizacion de tratamiento de datos.
+/// Politica de tratamiento de datos personales.
 ///
-/// Documento separado porque es el que la SIC revisa y el que el titular
-/// deberia firmar de forma expresa. Reúne los elementos del articulo 3 de la
-/// Ley 1581: responsable, desde cuando y hasta cuando, finalidad, forma de
-/// forma de notificarlos, derechos y procedimiento para ejercerlos.
-final dataTreatmentContent = ContentDocument(
-  title: 'Tratamiento de datos personales',
-  updatedAt: 'Octubre de 2026',
+/// Es a la vez el aviso de privacidad y el aviso de tratamiento de datos de la
+/// Ley 1581 de 2012: reune los elementos del articulo 3 (responsable,
+/// finalidad, forma de tratamiento, derechos, procedimiento) y desarrolla los
+/// principios del articulo 4 y los derechos de los articulos 8, 14 y 15.
+///
+/// Por eso no hay un tercer documento "Datos personales": este ya lo es.
+final privacyContent = ContentDocument(
+  title: 'Política de Privacidad',
+  updatedAt: 'Septiembre de 2026',
   intro:
-      'En cumplimiento del articulo 10 de la Ley 1581 de 2012, esta politica '
-      'de tratamiento de datos personales de Kronio Market te informa, como '
-      'responsable del tratamiento, para que fines tratamos tus datos, como '
-      'puedes ejercer tus derechos y a quien debes dirigirte.',
+      'Última actualización: Septiembre de 2026. Política de tratamiento de la '
+      'información conforme a la Ley 1581 de 2012, el Decreto 1377 de 2013 y el '
+      'Decreto 1074 de 2015.',
   sections: [
-    _responsibleSection,
-
     ContentSection(
-      '1. Identificacion del responsable y del encargado',
-      'Responsable: ${_orPending(AppConfig.legalName, 'razon social pendiente')}, '
-          'NIT ${_orPending(AppConfig.legalNit, 'pendiente')}, con domicilio en '
-          '${_orPending(AppConfig.legalAddress, 'direccion pendiente')}, '
-          '${_orPending(AppConfig.legalCity, 'ciudad pendiente')}.\n'
-          'Canal de contacto para fines de proteccion de datos: '
-          '${AppConfig.supportEmail}.\n'
-          'Encargado interno: '
-          '${_orPending(AppConfig.representative, 'representante pendiente')}, '
-          '${_orPending(AppConfig.representativeId, 'documento pendiente')}.\n'
-          'El procesamiento se realiza en los servidores de la API de Kronio '
-          'Market y, en lo que corresponda, en los servicios de terceros '
-          'descritos en la seccion 6 de este documento.',
+      '1. Responsable del tratamiento',
+      'El Responsable del tratamiento de los datos personales es $storeName. '
+          'Para cualquier consulta puede contactarnos a través de:\n\n'
+          '$_contactBlock\n\n'
+          'NIT: ${AppConfig.legalOrPending(AppConfig.legalNit)}.',
     ),
-
     ContentSection(
-      '2. Alcance del aviso',
-      'Este aviso aplica a los datos personales que tratamos a traves de esta '
-          'app: registro de usuario, carrito, pedidos, datos de envio, '
-          'conversaciones con el chatbot de ventas y registros de seguridad. '
-          'No tratamos datos de menores de edad.',
+      '2. Normativa aplicable',
+      'Esta política desarrolla el derecho constitucional a la protección de '
+          'datos (artículo 15 de la Constitución Política de Colombia) y se rige '
+          'por:\n\n'
+          '- Ley 1581 de 2012 — Régimen general de protección de datos '
+          'personales.\n'
+          '- Decreto 1377 de 2013 — Reglamentación parcial de la Ley 1581 de '
+          '2012.\n'
+          '- Decreto 1074 de 2015 — Decreto único reglamentario del sector '
+          'comercio.\n'
+          '- Las directrices y circulares de la Superintendencia de Industria y '
+          'Comercio (SIC).',
     ),
-
     ContentSection(
-      '3. Datos y finalidades del tratamiento',
-      'Tratamos tus datos personales con las siguientes finalidades:\n'
-          '- Registro, autenticacion y gestion de tu cuenta.\n'
-          '- Gestion del carrito y de los pedidos que realices.\n'
-          '- Procesamiento de pagos, facturacion y cumplimiento de obligaciones '
-          'contables y tributarias.\n'
-          '- Generacion de ordenes de envio y seguimiento con el proveedor.\n'
-          '- Envio de notificaciones operativas y transaccionales por correo '
-          'electronico.\n'
-          '- Atencion de solicitudes y del chatbot de ventas.\n'
-          '- Seguridad de la plataforma y prevencion de fraude.',
+      '3. Principios del tratamiento',
+      'De conformidad con el artículo 4 de la Ley 1581 de 2012, el tratamiento '
+          'de sus datos personales se desarrolla con sujeción a los siguientes '
+          'principios:\n\n'
+          '- Legalidad: el tratamiento se rige únicamente por las normas vigentes '
+          'aplicables.\n'
+          '- Finalidad: sus datos se recopilan para finalidades específicas, '
+          'explícitas y legítimas, informadas previamente.\n'
+          '- Libertad: el tratamiento se realiza con su autorización previa, '
+          'expresa e informada.\n'
+          '- Veracidad o calidad: los datos son veraces, completos, exactos, '
+          'actualizados y pertinentes.\n'
+          '- Transparencia: puede obtener información sobre la existencia y '
+          'características del tratamiento, en cualquier momento.\n'
+          '- Acceso y circulación restringida: sus datos solo son tratados por '
+          'personas autorizadas.\n'
+          '- Seguridad: se adoptan medidas técnicas, humanas y administrativas '
+          'para su protección.\n'
+          '- Confidencialidad: la información se mantiene reservada, incluso '
+          'después de finalizada la relación.',
     ),
-
     ContentSection(
-      '4. Forma de tratamiento y principios',
-      'El tratamiento se realiza de forma automatizada a traves de la API de '
-          'Kronio Market, con cifrado en transito y en reposo, controles de '
-          'acceso y registro de operaciones relevantes. Aplicamos los '
-          'principios de finalidad, libertad, veracidad, calidad, '
-          'transparencia, acceso y restriccion, seguridad y confidencialidad.',
+      '4. Datos personales que recopilamos',
+      '4.1 Datos suministrados por usted\n'
+          '- Nombres y apellidos\n'
+          '- Documento de identificación\n'
+          '- Correo electrónico y número de teléfono\n'
+          '- Dirección de envío y facturación\n'
+          '- Datos de la cuenta de usuario\n\n'
+          '4.2 Datos recopilados automáticamente\n'
+          '- Dirección IP, tipo de navegador y sistema operativo\n'
+          '- Páginas visitadas, productos consultados y comportamiento de '
+          'navegación\n'
+          '- Cookies y tecnologías similares (ver sección 14)\n\n'
+          'La recolección se limita a los datos pertinentes y adecuados para '
+          'las finalidades informadas en esta política (Decreto 1377 de 2013, '
+          'artículo 4).',
     ),
-
     ContentSection(
-      '5. Plazo de conservacion',
-      'Los datos se conservan mientras tu cuenta este activa y por los plazos '
-          'legales aplicables, especialmente los contables y tributarios. '
-          'Solicita el cierre de tu cuenta escribiendo a '
-          '${AppConfig.supportEmail} para eliminar los datos que no debamos '
-          'conservar por obligacion legal.',
+      '5. Finalidades del tratamiento',
+      'Sus datos personales serán utilizados para las siguientes finalidades '
+          'específicas, explícitas y legítimas:\n\n'
+          '- Procesar, gestionar y entregar sus pedidos, y gestionar cambios y '
+          'devoluciones.\n'
+          '- Crear y administrar su cuenta de usuario.\n'
+          '- Enviar confirmaciones de pedido, facturas, actualizaciones de envío '
+          'y comunicaciones sobre su cuenta.\n'
+          '- Atender sus peticiones, quejas, reclamos y sugerencias (PQRS).\n'
+          '- Verificar la identidad y prevenir el fraude.\n'
+          '- Mejorar nuestros productos, servicios y experiencia de compra.\n'
+          '- Enviar comunicaciones comerciales y promocionales únicamente con su '
+          'autorización previa.\n'
+          '- Cumplir con obligaciones legales, fiscales y regulatorias.',
     ),
-
     ContentSection(
-      '6. Transferencias a terceros y encargados del tratamiento',
-      'Compartimos datos, por cuenta de Kronio Market y solo en lo necesario '
-          'para prestar el servicio, con:\n'
-          '- Dropi, plataforma de dropshipping que recibe la orden de envio '
-          'con el producto, la direccion de entrega y los datos de quien '
-          'recibe. Actua como encargado del tratamiento.\n'
-          '- Google (Gemini), a quien el chatbot de ventas envia el texto de '
-          'tu conversacion para generar la respuesta.\n'
-          '- Amazon CloudFront, que sirve las imagenes de producto y, al '
-          'pedirlas, recibe tu direccion IP y los datos tecnicos de la '
-          'conexion.\n'
-          '- Proveedores de pago y de correo electronico, en la medida '
-          'necesaria para procesar pedidos y enviarte notificaciones.\n'
-          '- Autoridades publicas, cuando exista una obligacion legal que nos '
-          'obligue a entregar informacion.',
+      '6. Autorización previa, expresa e informada',
+      'De acuerdo con el artículo 9 de la Ley 1581 de 2012, el tratamiento de '
+          'datos personales requiere su autorización previa, expresa e informada. '
+          'La autorización se obtiene por cualquier medio que permita su consulta '
+          'posterior (escrito, oral o mediante conductas inequívocas; el '
+          'silencio nunca equivale a autorización) y se solicita antes o a más '
+          'tardar en el momento de la recolección de los datos.\n\n'
+          'Al aceptar esta política y/o nuestros términos de compra, usted '
+          'autoriza el tratamiento de sus datos personales conforme a las '
+          'finalidades aquí descritas y conservamos prueba de dicha '
+          'autorización (Decreto 1377 de 2013, artículo 7).',
     ),
-
     ContentSection(
-      '7. Transferencias internacionales',
-      'Algunos de los proveedores de la seccion anterior tratan datos en '
-          'servidores fuera de Colombia. Es el caso del chatbot de ventas: el '
-          'texto que escribes se transfiere a servidores de Google en el '
-          'exterior para generar la respuesta. Estos tratamientos se '
-          'realizan bajo los acuerdos de transferencia de datos que esos '
-          'proveedores ofrecen a sus clientes empresariales.\n\n'
-          'Si en un momento la normatividad exige localizar ese tratamiento, '
-          'adaptaremos la configuracion del chatbot y te lo informaremos. Para '
-          'ejercer tus derechos ante estos proveedores puedes escribir a '
-          '${AppConfig.supportEmail} y te orientaremos.',
+      '7. Datos sensibles',
+      'Datos sensibles son aquellos que afectan la intimidad del titular o cuyo '
+          'uso indebido puede generar discriminación (origen étnico o racial, '
+          'orientación política, convicciones religiosas o filosóficas, '
+          'pertenencia sindical, biometría, salud, etc.), conforme al artículo 5 '
+          'de la Ley 1581 de 2012.\n\n'
+          '$storeName no solicita ni trata datos sensibles como requisito para '
+          'acceder a sus productos o servicios, salvo que usted los suministre '
+          'voluntariamente o que la ley lo exija. En tal caso, se aplicará lo '
+          'dispuesto en el artículo 6 de la Ley 1581 de 2012: usted será '
+          'informado de que no está obligado a autorizar su tratamiento, se le '
+          'indicará cuáles datos son sensibles y la finalidad específica, y se '
+          'obtendrá su consentimiento expreso y facultativo.',
     ),
-
     ContentSection(
-      '8. Tus derechos como titular y como ejercerlos',
-      'Como titular de los datos tienes derecho a conocer, consultar, '
-          'actualizar, corregir y suprimir tus datos, revocar el '
-          'consentimiento y obtener informacion sobre su tratamiento, asi como '
-          'reclamar ante la Superintendencia de Industria y Comercio (SIC).\n\n'
-          'Para ejercer cualquiera de ellos, escribe a '
-          '${AppConfig.supportEmail} desde el correo con el que te registraste, '
-          'indicando tu nombre, la identificacion del dato o del derecho que '
-          'deseas ejercer y la documentacion que acredite tu identidad. '
-          'Responderemos dentro de los plazos legales, en todo caso dentro '
-          'del mes siguiente a la solicitud, con posibilidad de prorroga '
-          'justificada.',
+      '8. Derechos del titular de los datos',
+      'De conformidad con el artículo 8 de la Ley 1581 de 2012, usted tiene los '
+          'siguientes derechos (hábeas data):\n\n'
+          '- Conocer (acceder): obtener de nosotros información clara y completa '
+          'sobre sus datos y su tratamiento.\n'
+          '- Actualizar y rectificar: solicitar la corrección de datos inexactos, '
+          'incompletos o desactualizados.\n'
+          '- Suprimir: solicitar la eliminación de sus datos cuando no sean '
+          'necesarios para las finalidades autorizadas.\n'
+          '- Revocar la autorización: revocar total o parcialmente la '
+          'autorización otorgada para el tratamiento.\n'
+          '- Presentar reclamos por el uso indebido de sus datos.\n'
+          '- Solicitar prueba de la autorización otorgada.\n\n'
+          'Los derechos podrán ejercerse por usted, sus causahabientes, su '
+          'representante o el apoderado. Cuando la solicitud sea presentada por '
+          'persona distinta del titular, se deberá acreditar la calidad en que '
+          'actúa.',
     ),
-
     ContentSection(
-      '9. Autorizacion y caracter voluntario u obligatorio',
-      'Al registrarte en la app autorizas de forma libre, previa, informada, '
-          'inequivoca y expresa el tratamiento de tus datos personales para las '
-          'finalidades descritas. El tratamiento de los datos necesarios para '
-          'gestionar tu pedido tiene caracter obligatorio por obligacion legal. '
-          'Puedes revocar tu autorizacion en cualquier momento escribiendo a '
-          '${AppConfig.supportEmail}, sin efectos retroactivos sobre los '
-          'tratamientos ya realizados.',
+      '9. Procedimiento de consultas y reclamos',
+      'Consultas: conforme al artículo 14 de la Ley 1581 de 2012, las consultas '
+          'sobre sus datos personales se atenderán dentro de los diez (10) días '
+          'hábiles siguientes a la recepción. Cuando no sea posible atenderla en '
+          'dicho término, se le informará la razón de la demora y la fecha en que '
+          'será atendida, sin exceder de cinco (5) días hábiles adicionales.\n\n'
+          'Reclamos: conforme al artículo 15 de la Ley 1581 de 2012, los reclamos '
+          'por tratamiento no autorizado se atenderán dentro de los quince (15) '
+          'días hábiles siguientes a la recepción. Si no es posible atenderlo en '
+          'ese plazo, se le informará la razón de la demora y la fecha en que se '
+          'atenderá, sin exceder de ocho (8) días hábiles adicionales.\n\n'
+          'Para ejercer sus derechos, envíe su solicitud a '
+          '${AppConfig.supportEmail} indicando su nombre, el derecho que desea '
+          'ejercer, los datos objeto de la solicitud y una breve descripción de '
+          'la petición. Le daremos respuesta por el mismo medio y le '
+          'confirmaremos la radicación de su solicitud.',
     ),
-
     ContentSection(
-      '10. Cesion y no venta de datos',
-      'Kronio Market no vende ni cede tus datos personales con fines '
-          'comerciales a terceros. Unicamente los compartimos con los '
-          'encargados y las autoridades necesarias para prestar el servicio y '
-          'cumplir obligaciones legales, en los terminos descritos en este '
-          'documento.',
+      '10. Transferencias de datos',
+      'No vendemos, alquilamos ni compartimos sus datos personales con terceros no '
+          'relacionados. Los datos solo se comparten, de forma limitada, con:\n\n'
+          '- Empresas de transporte y logística, para la entrega de los pedidos.\n'
+          '- Proveedores tecnológicos (hosting, analítica, mensajería y soporte).\n'
+          '- Autoridades competentes, cuando sea requerido por disposición legal o '
+          'judicial.\n\n'
+          'Todos los terceros que tratan sus datos por cuenta de $storeName actúan '
+          'como Encargados del tratamiento, solo para los fines autorizados y con '
+          'obligaciones de confidencialidad y seguridad (artículo 12 de la Ley '
+          '1581 de 2012).',
+    ),
+    ContentSection(
+      '11. Transferencias internacionales',
+      'El chatbot de ventas de esta app (KronioBot) genera sus respuestas con un '
+          'modelo de inteligencia artificial de Google. Eso implica que el texto '
+          'de su conversación se envía a servidores de Google ubicados fuera de '
+          'Colombia. Las imágenes del catálogo se sirven desde una red de '
+          'distribución de contenido (CDN) en el exterior, que al pedirlas recibe '
+          'su dirección IP.\n\n'
+          'Cuando sus datos deban ser transferidos a un tercero ubicado fuera de '
+          'Colombia, nos aseguraremos de que el país destino ofrezca niveles de '
+          'protección adecuados conforme a los estándares de la SIC, o de que la '
+          'transferencia se ajuste a las excepciones legales y a las declaraciones '
+          'de conformidad aplicables (artículo 26 de la Ley 1581 de 2012).',
+    ),
+    ContentSection(
+      '12. Conservación de los datos',
+      'Conservaremos sus datos personales durante el tiempo necesario para cumplir '
+          'las finalidades de esta política o el término exigido por las leyes '
+          'aplicables. Los datos asociados a transacciones comerciales se conservan '
+          'por el término exigido para el cumplimiento de obligaciones fiscales y '
+          'contables. Una vez cumplida la finalidad o vencido el término, sus '
+          'datos serán suprimidos de forma segura.',
+    ),
+    ContentSection(
+      '13. Seguridad de los datos',
+      'Implementamos medidas técnicas, humanas y administrativas orientadas a '
+          'garantizar la seguridad y confidencialidad de sus datos (artículo 17 de '
+          'la Ley 1581 de 2012), incluyendo:\n\n'
+          '- Cifrado en tránsito (HTTPS/TLS) para las comunicaciones.\n'
+          '- Almacenamiento cifrado de contraseñas.\n'
+          '- Control de acceso por roles y registro de consultas.\n'
+          '- Monitoreo de vulnerabilidades y copias de seguridad.\n\n'
+          'En la app móvil, la sesión se mantiene con un token de acceso y no con '
+          'cookies: el navegador de Android no permite que una aplicación lea ni '
+          'escriba cookies de otros sitios.',
+    ),
+    ContentSection(
+      '14. Cookies y tecnologías similares',
+      'Esta política aplica a nuestros sitios web. La app móvil de $storeName no '
+          'utiliza cookies: en un dispositivo Android las cookies pertenecen al '
+          'navegador, no a la aplicación.\n\n'
+          'En el sitio web, utilizamos cookies y tecnologías similares para el '
+          'funcionamiento del sitio, mejorar la experiencia de compra y analizar el '
+          'tráfico. Puede configurar el uso de cookies desde su navegador.\n\n'
+          'Al entrar por primera vez le mostramos un aviso para que decida si '
+          'permite o no las cookies que no son esenciales. Mientras no acepte, el '
+          'sitio funciona igual, pero ninguna herramienta de medición o publicidad '
+          'se carga en su dispositivo. Navegar por el sitio no se considera '
+          'aceptación.\n\n'
+          'Tipos de cookies:\n'
+          '- Esenciales: necesarias para el carrito de compras, el inicio de sesión '
+          'y la seguridad. Están siempre activas porque sin ellas el sitio no '
+          'puede funcionar, y por eso no requieren su autorización.\n'
+          '- De analítica y publicidad: el píxel de Meta (Facebook Pixel), que '
+          'sirve para medir el tráfico y mostrarle anuncios relevantes. Solo se '
+          'cargan si usted lo autoriza en el aviso de cookies.\n\n'
+          'Cómo retirar su consentimiento: puede cambiar su decisión cuando quiera, '
+          'sin que esto afecte al acceso a la tienda. Le recomendamos usar el enlace '
+          'Configurar cookies que aparece al final de esta página. Allí puede '
+          'aceptar todas las cookies, quedarse solo con las esenciales o elegir '
+          'categoría por categoría. Si decide no permitir las de analítica y '
+          'publicidad, las cookies que ya se habían guardado se eliminan de su '
+          'navegador.\n\n'
+          'También puede bloquear o eliminar cookies desde la configuración de su '
+          'navegador. Tenga en cuenta que si bloquea las cookies esenciales, el '
+          'carrito de compras y el inicio de sesión pueden dejar de funcionar.\n\n'
+          'No utilizamos cookies de publicidad comportamental sin su autorización '
+          'previa. El tratamiento de datos derivado de cookies queda sujeto a esta '
+          'política.',
+    ),
+    ContentSection(
+      '15. Datos de menores de edad',
+      'Nuestros servicios y productos están dirigidos a personas mayores de 18 '
+          'años. No recopilamos intencionalmente datos de menores. El tratamiento '
+          'de datos de niñas, niños y adolescentes está sujeto a los requisitos '
+          'especiales del Decreto 1377 de 2013 (artículo 12). Si tiene conocimiento '
+          'de que hemos tratado datos de un menor sin autorización de sus padres o '
+          'representantes legales, contáctenos de inmediato para proceder a su '
+          'eliminación.',
+    ),
+    ContentSection(
+      '16. Registro Nacional de Bases de Datos',
+      'De conformidad con la Ley 1581 de 2012 y el Decreto 886 de 2014, '
+          'complementamos las obligaciones propias de los Responsables del '
+          'tratamiento, incluido, cuando corresponda, el registro de nuestras bases '
+          'de datos en el Registro Nacional de Bases de Datos administrado por la '
+          'Superintendencia de Industria y Comercio.',
+    ),
+    ContentSection(
+      '17. Vigencia y cambios de esta política',
+      'Esta política de tratamiento de la información entra en vigencia a partir de '
+          'la fecha de la última actualización indicada al inicio de este documento. '
+          'Nos reservamos el derecho de modificarla cuando sea necesario; los '
+          'cambios serán publicados en esta página con la fecha de actualización '
+          'correspondiente y, cuando sean significativos, se le notificará a través '
+          'de un aviso visible en el sitio o por correo electrónico.',
+    ),
+    ContentSection(
+      '18. Contacto',
+      'Si tiene preguntas, inquietudes o desea presentar una queja sobre el '
+          'tratamiento de sus datos personales, puede contactar a nuestro equipo de '
+          'protección de datos en ${AppConfig.supportEmail}.\n\n'
+          'Si considera que el tratamiento de sus datos vulnera la normativa '
+          'aplicable, tiene derecho a presentar una reclamación ante la '
+          'Superintendencia de Industria y Comercio (SIC) en www.sic.gov.co. También '
+          'puede consultar los términos de compra de la tienda.',
     ),
   ],
 );

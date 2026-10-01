@@ -94,17 +94,12 @@ class AppFooter extends StatelessWidget {
                       _FooterAction.contact,
                     ),
                     _FooterLink(
-                      'Politica de privacidad',
+                      'Política de privacidad',
                       Icons.privacy_tip_outlined,
                       _FooterAction.privacy,
                     ),
                     _FooterLink(
-                      'Datos personales',
-                      Icons.verified_user_outlined,
-                      _FooterAction.dataTreatment,
-                    ),
-                    _FooterLink(
-                      'Terminos y condiciones',
+                      'Términos y condiciones',
                       Icons.gavel_outlined,
                       _FooterAction.terms,
                     ),
@@ -145,16 +140,13 @@ class AppFooter extends StatelessWidget {
 }
 
 /// Que hace cada enlace del footer.
-enum _FooterAction {
-  catalog,
-  cart,
-  account,
-  about,
-  contact,
-  privacy,
-  dataTreatment,
-  terms,
-}
+/// Que hace cada enlace del footer.
+///
+/// Los documentos legales son solo dos: la Politica de Privacidad ya es el
+/// aviso de tratamiento de datos de la Ley 1581 de 2012, asi que un tercer
+/// enlace "Datos personales" apuntaria a un documento casi duplicado. Duplicar
+/// un texto legal es peor que no duplicarlo: el usuario no sabria cual rige.
+enum _FooterAction { catalog, cart, account, about, contact, privacy, terms }
 
 /// Logo, nombre y eslogan. El logo y el nombre devuelven al inicio.
 class _FooterBrand extends StatelessWidget {
@@ -249,13 +241,6 @@ class _FooterLinkButton extends StatelessWidget {
         await navigator.push(
           MaterialPageRoute<void>(
             builder: (_) => ContentScreen(document: privacyContent),
-          ),
-        );
-
-      case _FooterAction.dataTreatment:
-        await navigator.push(
-          MaterialPageRoute<void>(
-            builder: (_) => ContentScreen(document: dataTreatmentContent),
           ),
         );
 
