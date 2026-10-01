@@ -30,7 +30,7 @@ void main() {
       expect(user.email, 'ana@test.com');
       expect(user.name, 'Ana Perez');
       // La cookie de sesion (httpOnly) queda en el jar.
-      expect(service.api.cookieJar.valueOf('session'), 'sess123');
+      expect(service.api.cookieJar.valueOf('token'), 'jwt123');
       expect(service.api.cookieJar.valueOf('__Host-csrf-token'), 'csrf123');
     });
 
@@ -106,7 +106,33 @@ void main() {
   });
 
   group('register', () {
-    test('manda name, email y password y deja la sesion iniciada', () async {
+    test('manda name, email y password', () async {
+      final backend = FakeAuthBackend();
+      final service = await AuthService.create(
+        client: backend.client,
+        baseUrl: authTestBaseUrl,
+      );
+
+      await service.register(
+        name: 'Ana Perez',
+        email: 'ana@test.com',
+        password: 'secreta1',
+      );
+
+      final body = jsonDecode(
+        backend.request('POST', '/api/proxy/auth/register').body,
+      ) as Map<String, dynamic>;
+      expect(body, {
+        'name': 'Ana Perez',
+        'email': 'ana@test.com',
+        'password': 'secreta1',
+      });
+    });
+
+    // El backend no emite cookie de sesion al registrar, solo el token CSRF.
+    // Sin este login extra la app "entra" pero al reiniciar pierde la sesion,
+    // porque la cookie `token` nunca existio.
+    test('entra despues del alta porque el registro no deja cookie', () async {
       final backend = FakeAuthBackend();
       final service = await AuthService.create(
         client: backend.client,
@@ -119,16 +145,18 @@ void main() {
         password: 'secreta1',
       );
 
+      // El usuario sale de la respuesta del login, que si trae `role`.
       expect(user.email, 'ana@test.com');
-      final body = jsonDecode(
-        backend.request('POST', '/api/proxy/auth/register').body,
+      expect(user.role, 'USER');
+
+      final loginBody = jsonDecode(
+        backend.request('POST', '/api/proxy/auth/login').body,
       ) as Map<String, dynamic>;
-      expect(body, {
-        'name': 'Ana Perez',
-        'email': 'ana@test.com',
-        'password': 'secreta1',
-      });
-      expect(service.api.cookieJar.valueOf('session'), 'sess123');
+      expect(loginBody, {'email': 'ana@test.com', 'password': 'secreta1'});
+
+      // Y la cookie de sesion quedo guardada.
+      expect(service.api.cookieJar.valueOf('token'), 'jwt123');
+      expect(service.hasSession, isTrue);
     });
 
     test('traduce el 409 a "ya existe una cuenta"', () async {
@@ -260,7 +288,7 @@ void main() {
         baseUrl: authTestBaseUrl,
       );
 
-      expect(serviceB.api.cookieJar.valueOf('session'), 'sess123');
+      expect(serviceB.api.cookieJar.valueOf('token'), 'jwt123');
       expect(serviceB.api.cookieJar.valueOf('__Host-csrf-token'), 'csrf123');
     });
   });

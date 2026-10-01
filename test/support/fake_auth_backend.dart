@@ -5,11 +5,13 @@ import 'package:http/testing.dart';
 
 /// Backend de auth falso, en memoria, para los tests.
 ///
-/// Reproduce el contrato real que se descubrio del frontend web del backend:
-///  - `GET /auth` emite la cookie CSRF,
-///  - `POST /auth/login` responde `{user}` y emite la cookie de sesion,
-///  - `POST /auth/register` responde `{user}` con 201,
-///  - `GET /auth/profile` responde `{user}` o 401,
+/// Reproduce el contrato real verificado contra el backend de produccion:
+///  - `GET /auth` emite la cookie CSRF (`__Host-csrf-token`),
+///  - `POST /auth/login` responde `201` con `{user}` y emite la cookie de
+///    sesion (`token`, un JWT de una hora),
+///  - `POST /auth/register` responde `201` con la cuenta **plana** y **sin**
+///    cookie de sesion: registrar no deja al usuario con sesion,
+///  - `GET /auth/profile` responde plano `{id, email, name, role}` o 401,
 ///  - `POST /auth/refresh` renueva la sesion,
 ///  - `POST /auth/logout` cierra la sesion.
 
@@ -25,7 +27,10 @@ const fakeUserJson = <String, dynamic>{
 };
 
 const csrfCookie = '__Host-csrf-token=csrf123; Path=/; Secure; SameSite=Lax';
-const sessionCookie = 'session=sess123; Path=/; HttpOnly; Secure';
+
+/// Cookie de sesion real: un JWT en una cookie llamada `token`, de una hora.
+const sessionCookie =
+    'token=jwt123; Max-Age=3600; Path=/; HttpOnly; Secure; SameSite=Lax';
 
 /// Respuesta JSON con las cabeceras correctas.
 http.Response jsonResponse(
@@ -51,7 +56,7 @@ String? headerOf(http.Request request, String name) {
 class FakeAuthBackend {
   FakeAuthBackend({
     this.user = fakeUserJson,
-    this.loginStatus = 200,
+    this.loginStatus = 201,
     this.registerStatus = 201,
     this.profileStatus = 200,
     this.refreshStatus = 200,
@@ -80,7 +85,7 @@ class FakeAuthBackend {
           headers: {'set-cookie': csrfCookie},
         );
       case 'POST /api/proxy/auth/login':
-        if (loginStatus != 200) {
+        if (loginStatus < 200 || loginStatus >= 300) {
           return jsonResponse({
             'statusCode': loginStatus,
             'message': 'Invalid credentials',
@@ -88,29 +93,36 @@ class FakeAuthBackend {
         }
         return jsonResponse(
           {'user': user},
+          status: loginStatus,
           headers: {'set-cookie': sessionCookie},
         );
       case 'POST /api/proxy/auth/register':
-        if (registerStatus != 201) {
+        if (registerStatus < 200 || registerStatus >= 300) {
           return jsonResponse({
             'statusCode': registerStatus,
             'message': 'Conflict',
           }, status: registerStatus);
         }
-        return jsonResponse(
-          {'user': user},
-          status: 201,
-          headers: {'set-cookie': sessionCookie},
-        );
+        // El backend responde 201 con la cuenta plana (sin envoltorio `user` ni
+        // `role`) y SIN cookie de sesion: el alta no deja al usuario con sesion,
+        // hay que entrar aparte. Asi lo reproduce este doble para que un test
+        // que solo mire la respuesta del registro no pase por alto que la app
+        // tiene que hacer login despues.
+        return jsonResponse({
+          'id': user['id'],
+          'name': user['name'],
+          'email': user['email'],
+        }, status: registerStatus);
       case 'GET /api/proxy/auth/profile':
         profileCalls++;
-        if (profileStatus != 200) {
+        if (profileStatus < 200 || profileStatus >= 300) {
           return jsonResponse({
             'statusCode': profileStatus,
             'message': 'no',
           }, status: profileStatus);
         }
-        return jsonResponse({'user': user});
+        // El perfil real viene plano, sin envoltorio `user`.
+        return jsonResponse(user);
       case 'POST /api/proxy/auth/refresh':
         if (refreshStatus != 200) {
           return jsonResponse({

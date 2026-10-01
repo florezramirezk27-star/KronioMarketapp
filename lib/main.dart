@@ -21,6 +21,35 @@ void main() {
   runApp(const KronioApp());
 }
 
+/// Genera las rutas de auth, que necesitan ser `Route<bool>`.
+///
+/// Van en `onGenerateRoute` y no en `routes` a proposito: se abren con
+/// `pushNamed<bool>` y ambas pantallas hacen `pop(true)` cuando dejan la sesion
+/// iniciada, para que quien las abrio pueda cerrarse tambien.
+///
+/// `routes` no puede servir para eso: Flutter envuelve cada entrada en su
+/// `pageRouteBuilder`, que siempre devuelve `MaterialPageRoute<dynamic>`, y al
+/// castear esa ruta a `Route<bool>` revienta con
+/// `type 'MaterialPageRoute<dynamic>' is not a subtype of type 'Route<bool?>'`.
+///
+/// Vive fuera de [KronioApp] para que un test pueda usar exactamente el mismo
+/// generador que la app y cubra esa regresion.
+Route<dynamic>? generateRoute(RouteSettings settings) {
+  switch (settings.name) {
+    case '/login':
+      return MaterialPageRoute<bool>(
+        builder: (_) => const LoginScreen(),
+        settings: settings,
+      );
+    case '/register':
+      return MaterialPageRoute<bool>(
+        builder: (_) => const RegisterScreen(),
+        settings: settings,
+      );
+  }
+  return null;
+}
+
 class KronioApp extends StatelessWidget {
   const KronioApp({super.key});
 
@@ -33,16 +62,17 @@ class KronioApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      // Rutas nombradas para pantallas compartidas (carrito, perfil, auth).
+      // Rutas nombradas para pantallas compartidas (carrito, perfil).
       // Evita tener que pasar los scopes a mano al navegar.
       routes: {
         '/cart': (context) => const CartScreen(),
         '/profile': (context) => const ProfileScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
       },
+      // Las de auth van aparte porque necesitan ser `Route<bool>`; ver
+      // [generateRoute].
+      onGenerateRoute: generateRoute,
       // Sin `initialRoute`: `home` es solo la pantalla inicial; el resto se
-      // resuelve por `routes`.
+      // resuelve por `routes` y `onGenerateRoute`.
       home: const HomeScreen(),
       // Los scopes van en el `builder` y no en `home` a proposito: asi envuelven
       // al Navigator completo y las rutas nombradas heredan el carrito y la

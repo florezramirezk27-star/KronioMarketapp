@@ -79,13 +79,19 @@ class AuthService {
     return _parseUser(body);
   }
 
-  /// Crea una cuenta y deja la sesion iniciada (el backend ya devuelve cookie).
+  /// Crea la cuenta y deja la sesion iniciada.
+  ///
+  /// Ojo: el backend **no** emite la cookie de sesion al registrarse, solo el
+  /// token CSRF. `POST /auth/register` responde `201` con la cuenta plana
+  /// (`{id, name, email}`, sin `role`) y ahi sigue sin haber sesion. Por eso
+  /// despues del alta se entra con las mismas credenciales: es el unico modo de
+  /// conseguir la cookie `token`.
   Future<User> register({
     required String name,
     required String email,
     required String password,
   }) async {
-    final body = await _guarded(
+    await _guarded(
       () => api.postJson(
         '/auth/register',
         body: {
@@ -98,7 +104,8 @@ class AuthService {
       onUnauthorized: 'No pudimos crear la cuenta con esos datos.',
       onConflict: 'Ya existe una cuenta con ese correo.',
     );
-    return _parseUser(body);
+
+    return login(email: email, password: password);
   }
 
   /// Perfil de la sesion actual, o `null` si no hay sesion valida.
