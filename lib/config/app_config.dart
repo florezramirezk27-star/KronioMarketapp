@@ -45,4 +45,27 @@ class AppConfig {
     'KRONIO_ENV',
     defaultValue: 'production',
   );
+
+  /// Correo de soporte que abre el enlace "Contacto" del footer.
+  ///
+  /// OJO: el valor por defecto es un marcador de posicion. Antes de publicar en
+  /// Play Store hay que confirmar el dominio real y, si cambia, compilar con
+  /// `--dart-define=KRONIO_SUPPORT_EMAIL=contacto@dominio real`.
+  ///
+  /// Es lo que permite que "Contacto" tenga funcionalidad de verdad (abrir el
+  /// cliente de correo) en vez de un dialogo que dice que no hay nada.
+  static const String supportEmail = String.fromEnvironment(
+    'KRONIO_SUPPORT_EMAIL',
+    defaultValue: 'soporte@kroniomarket.co',
+  );
+
+  /// Tiempo maximo que se espera el arranque antes de montar la app igual.
+  ///
+  /// El splash aguanta mientras se cargan el carrito, la sesion y el catalogo.
+  /// Si la red se queda colgada, [CatalogController.load] resuelve por su cuenta
+  /// con el error, pero este tope evita que un fallo inesperado deje al usuario
+  /// mirando el logo indefinidamente.
+  static const Duration startupTimeout = Duration(
+    seconds: int.fromEnvironment('KRONIO_STARTUP_SECONDS', defaultValue: 20),
+  );
 }

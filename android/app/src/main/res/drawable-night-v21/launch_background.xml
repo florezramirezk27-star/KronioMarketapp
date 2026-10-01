@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Splash de arranque en Android 7+ (API 21+), donde `layer-list` con
-     `android:gravity` ya funciona. Mismo contenido que la version sin sufijo. -->
+<!-- Splash de arranque en modo oscuro para Android 7+ (API 21+). -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@color/kronio_surface_light" />
+    <item android:drawable="@color/kronio_surface_dark" />
     <item>
         <bitmap
             android:gravity="center"

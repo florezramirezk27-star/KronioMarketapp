@@ -19,11 +19,16 @@ class HomeTab extends StatefulWidget {
     required this.controller,
     required this.onSearch,
     required this.onOpenCategory,
+    this.onOpenCatalog,
   });
 
   final CatalogController controller;
   final VoidCallback onSearch;
   final void Function(String categoryId) onOpenCategory;
+
+  /// Se reenvia al footer. En esta pestana no es un no-op: desde el pie de la
+  /// pestana "Inicio", "Catalogo" tiene que cambiar de pestana.
+  final VoidCallback? onOpenCatalog;
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -59,6 +64,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           onRefresh: controller.refresh,
           child: ProductGrid(
             controller: controller,
+            onOpenCatalog: widget.onOpenCatalog,
             header: _HomeHeader(
               controller: controller,
               onSearch: widget.onSearch,

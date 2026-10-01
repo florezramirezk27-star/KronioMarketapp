@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Splash de arranque: fondo de marca con el logo centrado.
+
+     El nombre de la marca lo dibuja Flutter (BrandSplash) justo despues: un
+     `layer-list` de Android no puede pintar texto, y meterlo aqui exigiria
+    Rasterizar el nombre a una imagen, que se ve borroso y no escala.
+
+     Matchea con `lib/screens/app_splash.dart`: mismo fondo, mismo logo y mismo
+     tamaño, para que al pasar del splash nativo al de Flutter no se vea un
+     salto ni un parpadeo. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Splash de arranque: fondo naranja-50 de la marca, en vez del blanco
-         genérico de la plantilla de Flutter. Matchea con BrandSplash en
-         lib/main.dart para que no haya un salto de color al iniciar. -->
     <item android:drawable="@color/kronio_surface_light" />
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash_logo" />
+    </item>
 </layer-list>

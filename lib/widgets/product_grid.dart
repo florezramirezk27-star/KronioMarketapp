@@ -27,6 +27,7 @@ class ProductGrid extends StatefulWidget {
     this.onTapProduct,
     this.header,
     this.physics,
+    this.onOpenCatalog,
   });
 
   final CatalogController controller;
@@ -34,6 +35,9 @@ class ProductGrid extends StatefulWidget {
   final void Function(Product product)? onTapProduct;
   final Widget? header;
   final ScrollPhysics? physics;
+
+  /// Se pasa al footer para su enlace "Catalogo".
+  final VoidCallback? onOpenCatalog;
 
   @override
   State<ProductGrid> createState() => _ProductGridState();
@@ -147,7 +151,9 @@ class _ProductGridState extends State<ProductGrid> {
             SliverToBoxAdapter(child: _Footer(controller: controller)),
 
             // Pie de pagina de la tienda, debajo de todo el catalogo.
-            SliverToBoxAdapter(child: const AppFooter()),
+            SliverToBoxAdapter(
+              child: AppFooter(onOpenCatalog: widget.onOpenCatalog),
+            ),
           ],
         );
       },

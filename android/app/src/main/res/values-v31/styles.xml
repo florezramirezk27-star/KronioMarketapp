@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A partir de Android 12 el sistema pinta el splash con su propia
+         API y ya no usa `android:windowBackground`. Por eso este archivo
+         aparte: los atributos `windowSplashScreen*` no existen antes de la
+         API 31 y declararlos en `values/` rompe el build en versiones viejas.
+
+         `postSplashScreenTheme` es lo que hace el cambio de tema cuando la
+         primera pantalla de Flutter ya esta lista. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/kronio_surface_light</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+    </style>
+
+    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@color/kronio_surface_light</item>
+    </style>
+</resources>
