@@ -50,6 +50,28 @@ flutter build apk --release --dart-define=KRONIO_API_URL=https://api.kronio.co
 Sin `--dart-define` la app usa el proxy público, así que `flutter run` a secas
 funciona.
 
+### HTTP en desarrollo (Android)
+
+Desde Android 9 (API 28) el tráfico cleartext está bloqueado por defecto, así
+que el comando de desarrollo contra el backend local **necesita** una excepción
+o falla con una excepción de socket.
+
+En vez de abrir HTTP globalmente con `android:usesCleartextTraffic="true"`, que
+dejaría el release hablando en texto plano con cualquier host, el proyecto usa
+`android/app/src/main/res/xml/network_security_config.xml`, que:
+
+- exige **HTTPS para todo** (`base-config cleartextTrafficPermitted="false"`), y
+- permite cleartext **solo** contra `10.0.2.2`, `localhost` y `127.0.0.1`.
+
+Esos dominios no resuelven a ningún servidor remoto en un dispositivo real, así
+que la app de producción sigue siendo HTTPS puro.
+
+> **iOS**: App Transport Security también bloquea el cleartext por defecto y este
+> proyecto **no** declara excepciones. Si al correr contra el backend local la
+> petición falla en iOS, hay que agregar `NSAppTransportSecurity` con
+> `NSAllowsLocalNetworking` al `Info.plist`. No está verificado en un simulador,
+> a diferencia del caso de Android.
+
 ## Cómo correr
 
 ```bash
