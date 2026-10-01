@@ -72,10 +72,6 @@ class _ProductGridState extends State<ProductGrid> {
         final controller = widget.controller;
         final products = controller.products;
 
-        // El header (banner, categorias) va dentro del mismo scroll para que la
-        // pagina se sienta continua en vez de tener un bloque fijo arriba.
-        final headerCount = widget.header == null ? 0 : 1;
-
         return CustomScrollView(
           controller: _scrollController,
           physics:
@@ -114,7 +110,7 @@ class _ProductGridState extends State<ProductGrid> {
                             ? null
                             : () => widget.onTapProduct!(product),
                       );
-                    }, childCount: products.length + headerCount),
+                    }, childCount: products.length),
                   );
                 },
               ),
