@@ -54,6 +54,7 @@ void main() {
     expect(find.text('AYUDA'), findsOneWidget);
     expect(find.text('Contacto'), findsOneWidget);
     expect(find.text('Politica de privacidad'), findsOneWidget);
+    expect(find.text('Datos personales'), findsOneWidget);
     expect(find.textContaining('Kronio Market'), findsWidgets);
   });
 
@@ -93,8 +94,29 @@ void main() {
       findsWidgets,
       reason: 'el titulo esta en el AppBar y en el cuerpo',
     );
-    expect(find.textContaining('Datos que nos llegan'), findsOneWidget);
-    expect(find.textContaining('Tus derechos'), findsOneWidget);
+    expect(find.textContaining('Datos que nos llega'), findsOneWidget);
+    expect(find.textContaining('Tus derechos como titular'), findsOneWidget);
+  });
+
+  // El aviso de la Ley 1581 va en documento propio, no piggybackeado en el de
+  // privacidad: es el que la SIC revisa y el que el titular deberia poder abrir
+  // y leer sin tener que adivinar que esta escondido en otra pantalla.
+  testWidgets('Datos personales abre su documento', (tester) async {
+    await _pumpFooter(tester);
+
+    await tester.tap(find.text('Datos personales'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ContentScreen), findsOneWidget);
+    expect(find.textContaining('Ley 1581'), findsOneWidget);
+    expect(find.textContaining('Tus derechos como titular'), findsOneWidget);
+    expect(
+      find.textContaining('Transferencias internacionales'),
+      findsOneWidget,
+    );
+    // El documento tiene que decir que la conversacion sale del pais: es la
+    // parte que mas se olvida y la que mas reclama la SIC.
+    expect(find.textContaining('fuera de Colombia'), findsOneWidget);
   });
 
   testWidgets('Terminos y condiciones abre su documento', (tester) async {
@@ -104,7 +126,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ContentScreen), findsOneWidget);
-    expect(find.textContaining('Precios y disponibilidad'), findsOneWidget);
+    expect(find.textContaining('Productos y disponibilidad'), findsOneWidget);
   });
 
   testWidgets('Sobre nosotros abre su documento', (tester) async {

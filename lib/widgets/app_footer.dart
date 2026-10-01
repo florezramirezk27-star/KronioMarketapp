@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -44,7 +44,7 @@ class AppFooter extends StatelessWidget {
       ),
       child: Column(
         // Todo el footer centrado: la marca, las columnas de enlaces y el
-        // aviso legal. Antes arrancaba a la izquierda y se veía descuadrado
+        // aviso legal. Antes arrancaba a la izquierda y se veÃ­a descuadrado
         // contra el logo de la cabecera.
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -99,6 +99,11 @@ class AppFooter extends StatelessWidget {
                       _FooterAction.privacy,
                     ),
                     _FooterLink(
+                      'Datos personales',
+                      Icons.verified_user_outlined,
+                      _FooterAction.dataTreatment,
+                    ),
+                    _FooterLink(
                       'Terminos y condiciones',
                       Icons.gavel_outlined,
                       _FooterAction.terms,
@@ -140,7 +145,16 @@ class AppFooter extends StatelessWidget {
 }
 
 /// Que hace cada enlace del footer.
-enum _FooterAction { catalog, cart, account, about, contact, privacy, terms }
+enum _FooterAction {
+  catalog,
+  cart,
+  account,
+  about,
+  contact,
+  privacy,
+  dataTreatment,
+  terms,
+}
 
 /// Logo, nombre y eslogan. El logo y el nombre devuelven al inicio.
 class _FooterBrand extends StatelessWidget {
@@ -227,21 +241,28 @@ class _FooterLinkButton extends StatelessWidget {
       case _FooterAction.about:
         await navigator.push(
           MaterialPageRoute<void>(
-            builder: (_) => const ContentScreen(document: aboutContent),
+            builder: (_) => ContentScreen(document: aboutContent),
           ),
         );
 
       case _FooterAction.privacy:
         await navigator.push(
           MaterialPageRoute<void>(
-            builder: (_) => const ContentScreen(document: privacyContent),
+            builder: (_) => ContentScreen(document: privacyContent),
+          ),
+        );
+
+      case _FooterAction.dataTreatment:
+        await navigator.push(
+          MaterialPageRoute<void>(
+            builder: (_) => ContentScreen(document: dataTreatmentContent),
           ),
         );
 
       case _FooterAction.terms:
         await navigator.push(
           MaterialPageRoute<void>(
-            builder: (_) => const ContentScreen(document: termsContent),
+            builder: (_) => ContentScreen(document: termsContent),
           ),
         );
 

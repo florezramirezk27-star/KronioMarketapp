@@ -59,6 +59,70 @@ class AppConfig {
     defaultValue: 'soporte@kroniomarket.co',
   );
 
+  // ---------------------------------------------------------------------------
+  // Datos de la empresa, usados en los documentos legales.
+  //
+  // Van como `String.fromEnvironment` y no como constantes fijas por una razon
+  // concreta: son datos que cambian (se compra un dominio nuevo, se cambia de
+  // direccion) y tenerlos en el codigo obliga a recompilar y volver a firmar el
+  // APK para corregir una direccion. Ademas, en el repositorio publico no debe
+  // quedar el NIT ni el nombre del representante legal.
+  //
+  // Compilalos asi:
+  //   flutter build apk --release \
+  //     --dart-define=KRONIO_LEGAL_NAME="..." \
+  //     --dart-define=KRONIO_LEGAL_NIT="..." \
+  //     --dart-define=KRONIO_LEGAL_ADDRESS="..." \
+  //     --dart-define=KRONIO_LEGAL_CITY="..." \
+  //     --dart-define=KRONIO_LEGAL_PHONE="..." \
+  //     --dart-define=KRONIO_REPRESENTATIVE="..." \
+  //     --dart-define=KRONIO_REPRESENTATIVE_ID="..."
+  //
+  // Los valores por defecto estan vacios a proposito: si un documento legal
+  // muestra un hueco, se nota de inmediato. Poner un dato inventado seria peor
+  // que no poner nada, porque un NIT falso es un problema legal.
+  // ---------------------------------------------------------------------------
+
+  /// Razon social o nombre del responsable del tratamiento.
+  static const String legalName = String.fromEnvironment('KRONIO_LEGAL_NAME');
+
+  /// NIT de la empresa, sin guiones ni puntos.
+  static const String legalNit = String.fromEnvironment('KRONIO_LEGAL_NIT');
+
+  /// Direccion fisica donde se puede ejercer el derecho de queja.
+  static const String legalAddress = String.fromEnvironment(
+    'KRONIO_LEGAL_ADDRESS',
+  );
+
+  /// Ciudad y departamento.
+  static const String legalCity = String.fromEnvironment('KRONIO_LEGAL_CITY');
+
+  /// Telefono de contacto.
+  static const String legalPhone = String.fromEnvironment('KRONIO_LEGAL_PHONE');
+
+  /// Nombre de quien responde por los datos personales.
+  static const String representative = String.fromEnvironment(
+    'KRONIO_REPRESENTATIVE',
+  );
+
+  /// Tipo y numero de documento del representante.
+  static const String representativeId = String.fromEnvironment(
+    'KRONIO_REPRESENTATIVE_ID',
+  );
+
+  /// `true` cuando los datos de la empresa estan completos.
+  ///
+  /// Lo usan los documentos legales para decidir si se pueden publicar o si hay
+  /// que avisar de que faltan datos. Un documento con huecos es peor que uno
+  /// ausente: un aviso de privacidad sin llenar no sirve ni como borrador.
+  static bool get hasCompleteLegalData =>
+      legalName.isNotEmpty &&
+      legalNit.isNotEmpty &&
+      legalAddress.isNotEmpty &&
+      legalCity.isNotEmpty &&
+      legalPhone.isNotEmpty &&
+      representative.isNotEmpty;
+
   /// Tiempo maximo que se espera el arranque antes de montar la app igual.
   ///
   /// El splash aguanta mientras se cargan el carrito, la sesion y el catalogo.

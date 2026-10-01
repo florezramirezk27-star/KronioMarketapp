@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
 import '../content/store_content.dart';
 import '../theme/app_colors.dart';
 import '../widgets/brand_header.dart';
@@ -69,27 +70,33 @@ class ContentScreen extends StatelessWidget {
           ],
 
           // Aviso honesto: el texto es una base tecnica y no un documento
-          // legal aprobado. hidingarlo seria peor que decirlo.
+          // legal aprobado. Ocultarlo seria peor que decirlo.
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: scheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
+                const Icon(
                   Icons.info_outline,
                   size: 16,
                   color: AppColors.textSecondary,
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Texto informativo de la tienda. Es una base tecnica y no '
-                    'sustituye el aviso legal completo.',
-                    style: TextStyle(
+                    AppConfig.hasCompleteLegalData
+                        ? 'Este documento describe el tratamiento de tus datos '
+                              'en Kronio Market. Para ejercer tus derechos '
+                              'escribe a ${AppConfig.supportEmail}.'
+                        : 'Texto informativo de la tienda. Este documento esta '
+                              'pendiente de completar con los datos de la '
+                              'empresa, por lo que no sustituye el aviso legal '
+                              'definitivo.',
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                       height: 1.4,
