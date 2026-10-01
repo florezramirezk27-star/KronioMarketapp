@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/auth_form.dart';
 import '../widgets/auth_scope.dart';
+import '../widgets/google_sign_in_button.dart';
 
 /// Pantalla de inicio de sesion.
 ///
@@ -112,6 +113,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 busy: auth.isBusy,
                 onPressed: _submit,
               ),
+              const SizedBox(height: 20),
+              const AuthSeparator(),
+              const SizedBox(height: 16),
+              const GoogleSignInButton(),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: auth.isBusy ? null : _openRegister,

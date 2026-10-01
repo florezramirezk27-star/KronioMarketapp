@@ -40,6 +40,9 @@ dependencies:
   # Cache de imagenes en memoria y disco: sin esto cada tarjeta del catalogo
   # vuelve a bajar la foto al hacer scroll y al volver a la pantalla.
   cached_network_image: ^3.4.1
+  # Version real del APK instalado. Sin esto el footer y el perfil tendrian que
+  # repetir '1.0.0' a mano, que se desincroniza en cuanto se publica algo.
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:

@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../controllers/catalog_controller.dart';
 import '../models/product.dart';
+import 'app_footer.dart';
 import 'product_card.dart';
 
 /// Grid de productos con scroll infinito.
@@ -142,7 +143,11 @@ class _ProductGridState extends State<ProductGrid> {
               ),
             ),
 
+            // Estado de paginacion: spinner, error o contador de productos.
             SliverToBoxAdapter(child: _Footer(controller: controller)),
+
+            // Pie de pagina de la tienda, debajo de todo el catalogo.
+            SliverToBoxAdapter(child: const AppFooter()),
           ],
         );
       },

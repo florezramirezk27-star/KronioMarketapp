@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/auth_form.dart';
 import '../widgets/auth_scope.dart';
+import '../widgets/google_sign_in_button.dart';
 
 /// Pantalla de creacion de cuenta.
 ///
@@ -146,6 +147,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 busy: auth.isBusy,
                 onPressed: _submit,
               ),
+              const SizedBox(height: 20),
+              const AuthSeparator(),
+              const SizedBox(height: 16),
+              const GoogleSignInButton(),
             ],
           ),
         ),

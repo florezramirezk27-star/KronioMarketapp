@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../widgets/brand_header.dart';
 import '../widgets/search_results_view.dart';
 
 /// Pantalla de busqueda.
@@ -26,7 +27,10 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Buscar')),
+      appBar: AppBar(
+        leading: const BrandHeader(logoSize: 24, showName: false),
+        title: const Text('Buscar'),
+      ),
       body: SearchResultsView(
         // Los `ApiException` se propagan: la vista muestra `e.message`.
         onSearch: (query) async {

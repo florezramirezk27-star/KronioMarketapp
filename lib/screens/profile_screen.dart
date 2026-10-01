@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../config/app_config.dart';
 import '../controllers/auth_controller.dart';
 import '../theme/app_colors.dart';
 import '../utils/format.dart';
 import '../widgets/auth_scope.dart';
+import '../widgets/brand_header.dart';
 import '../widgets/cart_scope.dart';
 
 /// Pantalla de perfil.
@@ -21,7 +23,10 @@ class ProfileScreen extends StatelessWidget {
     final auth = AuthScope.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi cuenta')),
+      appBar: AppBar(
+        leading: const BrandHeader(logoSize: 24, showName: false),
+        title: const Text('Mi cuenta'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -40,10 +45,24 @@ class ProfileScreen extends StatelessWidget {
             title: const Text('Entorno'),
             subtitle: Text(AppConfig.environment),
           ),
-          const ListTile(
-            leading: Icon(Icons.verified_outlined),
-            title: Text('Version'),
-            subtitle: Text('1.0.0'),
+          // La version se lee del APK instalado en vez de escribir '1.0.0' a
+          // mano, que era un valor fijo que mentia en cuanto se publicaba una
+          // actualizacion. Si `package_info_plus` no responde (tests, web) se
+          // muestra "desconocida" en vez de fallar la pantalla.
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snapshot) {
+              final info = snapshot.data;
+              return ListTile(
+                leading: const Icon(Icons.verified_outlined),
+                title: const Text('Version'),
+                subtitle: Text(
+                  info == null
+                      ? 'desconocida'
+                      : '${info.version} (${info.buildNumber})',
+                ),
+              );
+            },
           ),
         ],
       ),

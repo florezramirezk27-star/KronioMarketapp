@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/cart_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/brand_header.dart';
 import '../widgets/product_image.dart';
 import '../utils/format.dart';
 import '../widgets/cart_scope.dart';
@@ -20,6 +21,7 @@ class CartScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const BrandHeader(logoSize: 24, showName: false),
         title: Text('Carrito${cart.isEmpty ? '' : ' (${cart.totalItems})'}'),
         actions: [
           if (!cart.isEmpty)

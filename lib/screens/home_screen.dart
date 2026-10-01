@@ -4,7 +4,7 @@ import '../controllers/catalog_controller.dart';
 import '../services/api_exception.dart';
 import '../services/api_service.dart';
 import '../theme/app_colors.dart';
-import '../widgets/brand_logo.dart';
+import '../widgets/brand_header.dart';
 import '../widgets/cart_button.dart';
 import '../widgets/category_chips.dart';
 import '../widgets/product_grid.dart';
@@ -39,21 +39,28 @@ class _HomeScreenState extends State<HomeScreen> {
         .push(MaterialPageRoute(builder: (_) => const SearchScreen()));
   }
 
+  /// Vuelve al primer tab ("Inicio"), que es a donde apunta la marca.
+  ///
+  /// Necesita un `Builder` porque el `DefaultTabController` vive en el
+  /// `Scaffold`, por debajo de donde se construye el `AppBar`. Con el contexto
+  /// del `State` el lookup no lo encontraria y no haria nada.
+  static void _goToFirstTab(BuildContext innerContext) {
+    BrandHeader.goHome(innerContext);
+    DefaultTabController.maybeOf(innerContext)?.animateTo(0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              BrandLogo(size: 32),
-              SizedBox(width: 8),
-              Flexible(
-                child: Text('Kronio Market', overflow: TextOverflow.ellipsis),
-              ),
-            ],
+          // Logo y nombre devuelven al inicio. En `HomeScreen` no hay nada que
+          // cerrar, asi que tambien sube al primer tab: si estabas en
+          // "Catalogo" y tocas la marca, vuelves a "Inicio".
+          title: Builder(
+            builder: (context) =>
+                BrandHeader(onTap: () => _goToFirstTab(context)),
           ),
           actions: [
             IconButton(
