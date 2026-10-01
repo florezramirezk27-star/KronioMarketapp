@@ -7,20 +7,33 @@ import '../config/app_config.dart';
 import '../models/category.dart';
 import '../models/product.dart';
 import 'api_exception.dart';
+import 'cookie_jar.dart';
 
 /// Cliente HTTP del backend de Kronio.
 ///
 /// No se instancia de forma ad-hoc en las pantallas: se crea una vez y se
 /// inyecta, para poder sustituirla por un doble en los tests y para no
 /// duplicar clientes HTTP.
+///
+/// Ademas de GET, sabe hacer POST con la sesion por cookies del backend:
+///  - reenvia las cookies guardadas en el [cookieJar],
+///  - antes de un POST consigue la cookie CSRF si no la tiene,
+///  - manda `X-CSRF-Token` en los metodos que no son GET/HEAD/OPTIONS,
+///  - si recibe 401, intenta refrescar la sesion una vez y reintenta.
 class ApiService {
-  ApiService({http.Client? client, String? baseUrl})
-    : _client = client ?? http.Client(),
-      _ownsClient = client == null,
-      baseUrl = (baseUrl ?? AppConfig.apiBaseUrl).replaceAll(
-        RegExp(r'/+$'),
-        '',
-      );
+  ApiService({
+    http.Client? client,
+    String? baseUrl,
+    CookieJar? cookieJar,
+    this.onCookiesChanged,
+    this.onUnauthorized,
+  }) : _client = client ?? http.Client(),
+       _ownsClient = client == null,
+       cookieJar = cookieJar ?? CookieJar(),
+       baseUrl = (baseUrl ?? AppConfig.apiBaseUrl).replaceAll(
+         RegExp(r'/+$'),
+         '',
+       );
 
   final http.Client _client;
 
@@ -29,8 +42,19 @@ class ApiService {
 
   final String baseUrl;
 
-  /// Headers comunes.
-  Map<String, String> get _headers => const {'Accept': 'application/json'};
+  /// Cookies de sesion y CSRF. Se comparte con quien persista la sesion.
+  final CookieJar cookieJar;
+
+  /// Se llama despues de cada respuesta que trajo cookies, para persistirlas.
+  final Future<void> Function()? onCookiesChanged;
+
+  /// Intenta renovar la sesion. Devuelve `true` si quedo renovada y conviene
+  /// reintentar la peticion original.
+  final Future<bool> Function()? onUnauthorized;
+
+  /// Nombres que usa el backend para la cookie CSRF. El prefijo `__Host-` es el
+  /// de produccion (exige Secure y Path=/); el otro es de desarrollo.
+  static const csrfCookieNames = ['__Host-csrf-token', 'csrf-token'];
 
   /// Libera el cliente HTTP. Solo hay que llamarlo si se creo internamente.
   void dispose() {
@@ -59,7 +83,7 @@ class ApiService {
     }
 
     final uri = Uri.parse('$baseUrl/products').replace(queryParameters: query);
-    final body = await _getJson(uri);
+    final body = await _send(method: 'GET', uri: uri);
 
     return PaginatedResult.fromJson(
       body,
@@ -70,7 +94,7 @@ class ApiService {
   /// Detalle de un producto por su slug. Lanza [ApiNotFoundException] si no existe.
   Future<Product> fetchProductBySlug(String slug) async {
     final uri = Uri.parse('$baseUrl/products/${Uri.encodeComponent(slug)}');
-    final body = await _getJson(uri);
+    final body = await _send(method: 'GET', uri: uri);
     if (body is! Map<String, dynamic>) {
       throw ApiFormatException(
         'La respuesta del producto no tiene el formato esperado.',
@@ -84,7 +108,7 @@ class ApiService {
 
   Future<List<Category>> fetchCategories() async {
     final uri = Uri.parse('$baseUrl/categories');
-    final body = await _getJson(uri);
+    final body = await _send(method: 'GET', uri: uri);
 
     if (body is! List) {
       throw ApiFormatException(
@@ -101,16 +125,69 @@ class ApiService {
 
   // ------------------------------------------------------------------- Nucleo
 
-  /// Hace el GET, aplica el timeout y devuelve el JSON ya decodificado.
+  /// GET que devuelve el JSON ya decodificado.
+  Future<dynamic> getJson(String path, {Map<String, String>? query}) {
+    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);
+    return _send(method: 'GET', uri: uri);
+  }
+
+  /// POST JSON. Es el que usan auth y, mas adelante, el checkout.
+  ///
+  /// [allowRefresh] se apaga para login, registro y refresh: ahi un 401
+  /// significa "credenciales malas" o "no hay sesion", no "sesion vencida", y
+  /// reintentar con un refresh seria un bucle.
+  Future<dynamic> postJson(
+    String path, {
+    Map<String, dynamic>? body,
+    bool allowRefresh = true,
+  }) {
+    final uri = Uri.parse('$baseUrl$path');
+    return _send(
+      method: 'POST',
+      uri: uri,
+      body: body,
+      allowRefresh: allowRefresh,
+    );
+  }
+
+  /// Hace la peticion, aplica el timeout y devuelve el JSON ya decodificado.
   ///
   /// Cualquier falla se convierte en [ApiException] para que la UI nunca tenga
   /// que inspeccionar excepciones de libreria.
-  Future<dynamic> _getJson(Uri uri) async {
+  Future<dynamic> _send({
+    required String method,
+    required Uri uri,
+    Map<String, dynamic>? body,
+    bool isRetry = false,
+    bool allowRefresh = true,
+  }) async {
+    final isUnsafe = !const {'GET', 'HEAD', 'OPTIONS'}.contains(method);
+
+    // El backend exige CSRF en los metodos que mutan. La cookie se obtiene con
+    // un GET a /auth, que es lo que hace tambien el frontend web.
+    if (isUnsafe && _csrfToken() == null) {
+      await _primeCsrfToken();
+    }
+
+    final headers = <String, String>{'Accept': 'application/json'};
+    if (body != null) headers['Content-Type'] = 'application/json';
+
+    final cookieHeader = cookieJar.headerFor(uri);
+    if (cookieHeader != null) headers['Cookie'] = cookieHeader;
+
+    if (isUnsafe) {
+      final csrf = _csrfToken();
+      if (csrf != null) headers['X-CSRF-Token'] = csrf;
+    }
+
     late final http.Response response;
     try {
-      response = await _client
-          .get(uri, headers: _headers)
-          .timeout(AppConfig.requestTimeout);
+      response = await _dispatch(
+        method: method,
+        uri: uri,
+        headers: headers,
+        body: body,
+      ).timeout(AppConfig.requestTimeout);
     } on TimeoutException {
       throw ApiTimeoutException(
         'El servidor tardo demasiado en responder. Intenta de nuevo.',
@@ -120,9 +197,31 @@ class ApiService {
       throw mapNetworkError(error, uri: uri);
     }
 
-    if (response.statusCode != 200) {
-      throw mapStatusCode(response.statusCode, uri: uri, body: response.body);
+    await _absorbCookies(uri, response);
+
+    if (response.statusCode == 401 &&
+        allowRefresh &&
+        !isRetry &&
+        onUnauthorized != null) {
+      final refreshed = await onUnauthorized!();
+      if (refreshed) {
+        return _send(
+          method: method,
+          uri: uri,
+          body: body,
+          isRetry: true,
+          allowRefresh: false,
+        );
+      }
     }
+
+    final status = response.statusCode;
+    if (status < 200 || status >= 300) {
+      throw mapStatusCode(status, uri: uri, body: response.body);
+    }
+
+    // 204 y respuestas sin cuerpo (por ejemplo el logout) no tienen JSON.
+    if (response.bodyBytes.isEmpty) return null;
 
     try {
       return jsonDecode(utf8.decode(response.bodyBytes));
@@ -132,6 +231,61 @@ class ApiService {
         uri: uri,
       );
     }
+  }
+
+  Future<http.Response> _dispatch({
+    required String method,
+    required Uri uri,
+    required Map<String, String> headers,
+    Map<String, dynamic>? body,
+  }) {
+    switch (method) {
+      case 'POST':
+        return _client.post(
+          uri,
+          headers: headers,
+          body: body == null ? null : jsonEncode(body),
+        );
+      case 'GET':
+      default:
+        return _client.get(uri, headers: headers);
+    }
+  }
+
+  /// Pide un CSRF nuevo con `GET /auth`, que es como el backend lo emite.
+  ///
+  /// Si falla no se propaga: el POST que sigue fallara con el mensaje del
+  /// servidor, que es mas util que un error de este paso intermedio.
+  Future<void> _primeCsrfToken() async {
+    try {
+      await _send(
+        method: 'GET',
+        uri: Uri.parse('$baseUrl/auth'),
+        allowRefresh: false,
+        isRetry: true, // evita cualquier recursion
+      );
+    } on ApiException {
+      // Se ignora a proposito; ver comentario de arriba.
+    }
+  }
+
+  String? _csrfToken() {
+    for (final name in csrfCookieNames) {
+      final value = cookieJar.valueOf(name);
+      if (value != null && value.isNotEmpty) return value;
+    }
+    return null;
+  }
+
+  Future<void> _absorbCookies(Uri uri, http.Response response) async {
+    final setCookies = <String>[];
+    response.headers.forEach((key, value) {
+      if (key.toLowerCase() == 'set-cookie') setCookies.add(value);
+    });
+    if (setCookies.isEmpty) return;
+
+    cookieJar.absorb(uri, setCookies);
+    await onCookiesChanged?.call();
   }
 }
 
