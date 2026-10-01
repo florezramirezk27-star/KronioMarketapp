@@ -82,7 +82,7 @@ permite cambiarla.
 
 ```
 lib/
-├── main.dart                       # Entrypoint, rutas, carga del carrito
+├── main.dart                       # Entrypoint, rutas, CartScope global
 ├── config/
 │   └── app_config.dart             # Configuración por --dart-define
 ├── theme/

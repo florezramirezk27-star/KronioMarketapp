@@ -32,29 +32,46 @@ class KronioApp extends StatelessWidget {
         '/cart': (context) => const CartScreen(),
         '/profile': (context) => const ProfileScreen(),
       },
-      // Sin `initialRoute`: la pantalla real la monta `_Root` debajo, y
-      // declarar ambos a la vez hace que Flutter lance un assert.
-      home: const _Root(),
+      // Sin `initialRoute`: `home` es solo la pantalla inicial; el resto se
+      // resuelve por `routes`.
+      home: const HomeScreen(),
+      // El `CartScope` va en el `builder` y no en `home` a proposito: asi envuelve
+      // al Navigator completo y las rutas nombradas heredan el carrito.
+      //
+      // Si se dejara en `home`, `/cart` y `/profile` quedarian como hermanas de
+      // esa rama, fuera del `InheritedWidget`, y `CartScope.of(context)`
+      // devolveria null -> pantalla roja al abrir el carrito.
+      builder: (context, child) => _CartScopeHost(child: child!),
     );
   }
 }
 
-/// Carga el carrito persistido y recien ahi monta el arbol principal.
+/// Hidrata el carrito una vez y monta el [CartScope] por encima del Navigator.
 ///
-/// Se usa un `FutureBuilder` en vez de un `StatefulWidget` porque la carga es
-/// de una sola vez al arranque y no hace falta conservar estado.
-class _Root extends StatelessWidget {
-  const _Root();
+/// Va en el `builder` del `MaterialApp` para que abarque tambien las rutas
+/// nombradas (`/cart`, `/profile`), que si no quedan fuera del
+/// `InheritedWidget` y `CartScope.of` revienta.
+class _CartScopeHost extends StatefulWidget {
+  const _CartScopeHost({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_CartScopeHost> createState() => _CartScopeHostState();
+}
+
+class _CartScopeHostState extends State<_CartScopeHost> {
+  late final Future<CartService> _cart = CartService.load();
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<CartService>(
-      future: CartService.load(),
+      future: _cart,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const BrandSplash();
         }
-        return CartScope(cart: snapshot.data!, child: const HomeScreen());
+        return CartScope(cart: snapshot.data!, child: widget.child);
       },
     );
   }
