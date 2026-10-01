@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/cart_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/product_image.dart';
 import '../utils/format.dart';
 import '../widgets/cart_button.dart';
 import '../widgets/cart_scope.dart';
@@ -172,12 +173,12 @@ class _ImagePreview extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: images.isEmpty
                 ? const _NoImage(size: 64)
-                : Image.network(
-                    images[selectedIndex],
+                : ProductImage(
+                    url: images[selectedIndex],
                     fit: BoxFit.contain,
                     // La imagen principal se muestra a pantalla completa.
-                    cacheWidth: 1200,
-                    errorBuilder: (_, _, _) => const _NoImage(size: 64),
+                    memCacheWidth: 1200,
+                    iconSize: 64,
                   ),
           ),
         ),
@@ -203,15 +204,11 @@ class _ImagePreview extends StatelessWidget {
                       ),
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: Image.network(
-                      images[index],
+                    child: ProductImage(
+                      url: images[index],
                       fit: BoxFit.cover,
-                      cacheWidth: 160,
-                      errorBuilder: (_, _, _) => const Icon(
-                        Icons.broken_image,
-                        size: 20,
-                        color: AppColors.textSecondary,
-                      ),
+                      memCacheWidth: 160,
+                      iconSize: 20,
                     ),
                   ),
                 );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/cart_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/product_image.dart';
 import '../utils/format.dart';
 import '../widgets/cart_scope.dart';
 
@@ -180,15 +181,11 @@ class _CartThumb extends StatelessWidget {
                 color: AppColors.textSecondary,
                 size: 28,
               )
-            : Image.network(
-                product.image,
+            : ProductImage(
+                url: product.image,
                 fit: BoxFit.cover,
-                cacheWidth: 160,
-                errorBuilder: (_, _, _) => const Icon(
-                  Icons.image_not_supported_outlined,
-                  color: AppColors.textSecondary,
-                  size: 28,
-                ),
+                memCacheWidth: 160,
+                iconSize: 28,
               ),
       ),
     );

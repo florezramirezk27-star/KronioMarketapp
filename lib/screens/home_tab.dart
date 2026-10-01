@@ -13,7 +13,7 @@ import 'home_screen.dart';
 /// que vuelve a pedir productos y categorias. Antes hacia
 /// `setState(() {})` sobre el mismo `Future`, que no disparaba ninguna peticion
 /// nueva.
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   const HomeTab({
     super.key,
     required this.controller,
@@ -26,7 +26,23 @@ class HomeTab extends StatelessWidget {
   final void Function(String categoryId) onOpenCategory;
 
   @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+/// Estado de [HomeTab].
+///
+/// `AutomaticKeepAliveClientMixin` para que la pestana sobreviva al cambio de
+/// tab: sin el, `TabBarView` la destruye al salir de pantalla y al volver hay
+/// que recargarla desde cero.
+class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
+    final controller = widget.controller;
+
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
@@ -45,8 +61,8 @@ class HomeTab extends StatelessWidget {
             controller: controller,
             header: _HomeHeader(
               controller: controller,
-              onSearch: onSearch,
-              onOpenCategory: onOpenCategory,
+              onSearch: widget.onSearch,
+              onOpenCategory: widget.onOpenCategory,
             ),
           ),
         );

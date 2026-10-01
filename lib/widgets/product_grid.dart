@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+// `ScrollCacheExtent` vive en `rendering` y `material.dart` no lo reexporta.
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../controllers/catalog_controller.dart';
 import '../models/product.dart';
@@ -74,6 +76,10 @@ class _ProductGridState extends State<ProductGrid> {
 
         return CustomScrollView(
           controller: _scrollController,
+          // Precarga una pantalla y media mas alla del viewport. Evita el
+          // "flash de hueco" al hacer scroll rapido: sin esto las tarjetas se
+          // construyen justo cuando ya se ven.
+          scrollCacheExtent: const ScrollCacheExtent.pixels(600),
           physics:
               widget.physics ??
               const AlwaysScrollableScrollPhysics(
@@ -102,15 +108,35 @@ class _ProductGridState extends State<ProductGrid> {
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final product = products[index];
-                      return ProductCard(
-                        product: product,
-                        onTap: widget.onTapProduct == null
-                            ? null
-                            : () => widget.onTapProduct!(product),
-                      );
-                    }, childCount: products.length),
+                    // `addRepaintBoundaries` (que el delegate ya activa por defecto) envuelve
+                    // cada tarjeta en su propia capa, asi que al hacer scroll
+                    // solo se repinta la que entra o sale, no el grid entero.
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final product = products[index];
+                        return ProductCard(
+                          // Key estable por id de producto: es lo que permite que
+                          // `findChildIndexCallback` reubique la tarjeta cuando
+                          // la lista cambia, conservando el estado y el scroll.
+                          key: ValueKey(product.id),
+                          product: product,
+                          onTap: widget.onTapProduct == null
+                              ? null
+                              : () => widget.onTapProduct!(product),
+                        );
+                      },
+                      // Al revalidar stock pueden desaparecer productos del
+                      // medio de la lista. Sin esto el scroll "salta", porque
+                      // Flutter asume por defecto que los indices no cambian.
+                      findChildIndexCallback: (key) {
+                        if (key is! ValueKey<String>) return null;
+                        final index = products.indexWhere(
+                          (p) => p.id == key.value,
+                        );
+                        return index == -1 ? null : index;
+                      },
+                      childCount: products.length,
+                    ),
                   );
                 },
               ),

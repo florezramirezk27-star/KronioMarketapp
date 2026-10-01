@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../models/product.dart';
-import '../theme/app_colors.dart';
 import '../screens/product_detail_screen.dart';
+import '../theme/app_colors.dart';
 import '../utils/format.dart';
+import 'product_image.dart';
 
 /// Tarjeta de producto para el grid del catalogo.
 class ProductCard extends StatelessWidget {
@@ -122,29 +123,12 @@ class ProductCard extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (product.image.isEmpty)
-          const _ImagePlaceholder()
-        else
-          Image.network(
-            product.image,
-            fit: BoxFit.cover,
-            // Se limita el ancho en pixeles logicos habituales de una tarjeta.
-            cacheWidth: 400,
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) return child;
-              return const ColoredBox(
-                color: AppColors.surfaceLight,
-                child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              );
-            },
-            errorBuilder: (context, error, stack) => const _ImagePlaceholder(),
-          ),
+        ProductImage(
+          url: product.image,
+          fit: BoxFit.cover,
+          // Se limita el ancho en pixeles habituales de una tarjeta.
+          memCacheWidth: 400,
+        ),
         if (product.hasDiscount)
           Positioned(
             top: 8,
@@ -186,22 +170,6 @@ class ProductCard extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _ImagePlaceholder extends StatelessWidget {
-  const _ImagePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: AppColors.surfaceLight,
-      child: Icon(
-        Icons.image_not_supported_outlined,
-        size: 40,
-        color: AppColors.textSecondary.withValues(alpha: 0.5),
-      ),
     );
   }
 }

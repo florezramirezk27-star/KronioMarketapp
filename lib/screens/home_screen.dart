@@ -77,12 +77,20 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         body: TabBarView(
           children: [
+            // Cada tab conserva su propio scroll y su posicion al alternar entre
+            // ellas: sin esto, `TabBarView` destruye la tab que sale de pantalla
+            // y al volver hay que recargarla y volver arriba del todo.
             HomeTab(
+              key: const PageStorageKey('home-tab'),
               controller: _controller,
               onSearch: _openSearch,
               onOpenCategory: (id) => _controller.setCategory(id),
             ),
-            _CatalogTab(controller: _controller, onSearch: _openSearch),
+            _CatalogTab(
+              key: const PageStorageKey('catalog-tab'),
+              controller: _controller,
+              onSearch: _openSearch,
+            ),
           ],
         ),
       ),
@@ -91,19 +99,37 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 /// Pestana de catalogo completo con filtro por categoria.
-class _CatalogTab extends StatelessWidget {
-  const _CatalogTab({required this.controller, required this.onSearch});
+///
+/// Es `StatefulWidget` solo para `AutomaticKeepAliveClientMixin`: mantiene viva
+/// la pestana en el `TabBarView` y con ella la posicion del scroll y las
+/// categorias ya cargadas.
+class _CatalogTab extends StatefulWidget {
+  const _CatalogTab({
+    super.key,
+    required this.controller,
+    required this.onSearch,
+  });
 
   final CatalogController controller;
   final VoidCallback onSearch;
 
   @override
+  State<_CatalogTab> createState() => _CatalogTabState();
+}
+
+class _CatalogTabState extends State<_CatalogTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Column(
       children: [
-        _SearchField(onTap: onSearch),
-        CategoryChips(controller: controller),
-        Expanded(child: ProductGrid(controller: controller)),
+        _SearchField(onTap: widget.onSearch),
+        CategoryChips(controller: widget.controller),
+        Expanded(child: ProductGrid(controller: widget.controller)),
       ],
     );
   }
