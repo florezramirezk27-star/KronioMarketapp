@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/cart_service.dart';
 import '../theme/app_colors.dart';
-import '../widgets/brand_header.dart';
 import '../widgets/product_image.dart';
 import '../utils/format.dart';
 import '../widgets/cart_button.dart';
@@ -76,9 +75,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        // El logo como `leading` deja un acceso al inicio en cada pantalla sin
-        // robarle espacio al nombre del producto.
-        leading: const BrandHeader(logoSize: 24, showName: false),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: const [CartButton()],
       ),

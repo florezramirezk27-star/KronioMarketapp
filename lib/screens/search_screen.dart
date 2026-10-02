@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-import '../widgets/brand_header.dart';
 import '../widgets/search_results_view.dart';
 
 /// Pantalla de busqueda.
@@ -28,7 +27,11 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: const BrandHeader(logoSize: 24, showName: false),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text('Buscar'),
       ),
       body: SearchResultsView(

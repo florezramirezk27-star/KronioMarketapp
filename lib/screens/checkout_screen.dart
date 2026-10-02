@@ -5,7 +5,6 @@ import '../services/checkout_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/format.dart';
 import '../widgets/auth_scope.dart';
-import '../widgets/brand_header.dart';
 import '../widgets/cart_scope.dart';
 import '../widgets/checkout_scope.dart';
 import 'order_confirmation_screen.dart';
@@ -223,7 +222,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (cart.isEmpty && !_submitting) {
       return Scaffold(
         appBar: AppBar(
-          leading: const BrandHeader(logoSize: 24, showName: false),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            tooltip: 'Volver',
+            onPressed: () => Navigator.of(context).pop(),
+          ),
           title: const Text('Confirmar pedido'),
         ),
         body: const Center(
@@ -241,7 +244,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BrandHeader(logoSize: 24, showName: false),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text('Confirmar pedido'),
       ),
       body: Form(

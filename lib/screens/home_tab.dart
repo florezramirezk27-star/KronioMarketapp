@@ -69,6 +69,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           child: ProductGrid(
             controller: controller,
             onOpenCatalog: widget.onOpenCatalog,
+            showFooter: true,
             header: _HomeHeader(
               controller: controller,
               onSearch: widget.onSearch,

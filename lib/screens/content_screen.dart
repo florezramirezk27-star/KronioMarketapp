@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../config/app_config.dart';
 import '../content/store_content.dart';
 import '../theme/app_colors.dart';
-import '../widgets/brand_header.dart';
 
 /// Pantalla de contenido largo: "Sobre nosotros", "Política de privacidad" y
 /// "Términos y condiciones".
@@ -56,7 +55,11 @@ class _ContentScreenState extends State<ContentScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BrandHeader(logoSize: 24, showName: false),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(document.title),
       ),
       // `SingleChildScrollView` con un `Column`, no un `ListView`.

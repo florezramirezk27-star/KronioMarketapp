@@ -368,63 +368,33 @@ void main() {
     }
   });
 
-  group('ventajas de compra', () {
-    // Los tres datos de compra. Cada uno sale de lo que ya dicen los terminos,
-    // asi que no se afirma nada que la app no cumpla.
-    testWidgets('muestra las tres condiciones reales de compra', (
-      tester,
-    ) async {
+  group('footer simplificado (sin tarjetas de ventajas)', () {
+    // El footer ahora solo tiene marca + enlaces + copyright/ciudad.
+    // Se quitaron las 3 tarjetas ("Paga al recibir", "30 dias", "Envios")
+    // a pedido: el usuario queria solo lo esencial.
+    testWidgets('no muestra las tarjetas de ventajas', (tester) async {
       await _pumpFooter(tester);
 
-      expect(find.text('Paga al recibir'), findsOneWidget);
-      expect(find.text('30 días para devolver'), findsOneWidget);
-      expect(find.text('Envíos a todo el país'), findsOneWidget);
-    });
-
-    // El detalle importa mas que el titulo: "paga al recibir" sin mas podria
-    // ser cualquier cosa. El texto deja claro que no se piden datos de tarjeta,
-    // que es lo que un comprador Colombian va a leer como señal de confianza.
-    testWidgets('aclara que no se piden datos de tarjeta', (tester) async {
-      await _pumpFooter(tester);
-
+      expect(find.text('Paga al recibir'), findsNothing);
+      expect(find.text('30 días para devolver'), findsNothing);
+      expect(find.text('Envíos a todo el país'), findsNothing);
       expect(
         find.text('Contra entrega, sin pedirte datos de tarjeta'),
-        findsOneWidget,
+        findsNothing,
       );
     });
 
-    // Reclamo obligatorio de la Ley 1480: sin el aviso en la pantalla donde se
-    // compra, el consumidor no puede saber que existen esos 30 dias.
-    testWidgets('el plazo de devolucion es el de la garantia legal', (
-      tester,
-    ) async {
+    // Los enlaces de Tienda y Ayuda siguen ahi
+    testWidgets('mantiene los enlaces de Tienda y Ayuda', (tester) async {
       await _pumpFooter(tester);
 
-      expect(find.textContaining('30 días'), findsWidgets);
-    });
-
-    // Un pie de 400 dp tiene que apilar las tarjetas: en fila, cada una
-    // quedaria en ~120 dp y "Envíos a todo el país" se partiria en dos lineas.
-    testWidgets('en telefono las ventajas se apilan', (tester) async {
-      await _pumpFooter(tester, width: 400);
-
-      final pagas = tester.getTopLeft(find.text('Paga al recibir')).dy;
-      final treinta = tester.getTopLeft(find.text('30 días para devolver')).dy;
-      final envios = tester.getTopLeft(find.text('Envíos a todo el país')).dy;
-
-      expect(treinta, greaterThan(pagas));
-      expect(envios, greaterThan(treinta));
-    });
-
-    testWidgets('en pantalla ancha las ventajas van en fila', (tester) async {
-      await _pumpFooter(tester, width: 700);
-
-      final pagas = tester.getRect(find.text('Paga al recibir'));
-      final envios = tester.getRect(find.text('Envíos a todo el país'));
-
-      // Misma altura vertical: comparten fila.
-      expect(pagas.top, closeTo(envios.top, 1));
-      expect(envios.left, greaterThan(pagas.left));
+      expect(find.text('Catalogo'), findsOneWidget);
+      expect(find.text('Carrito'), findsOneWidget);
+      expect(find.text('Mi cuenta'), findsOneWidget);
+      expect(find.text('Sobre nosotros'), findsOneWidget);
+      expect(find.text('Contacto'), findsOneWidget);
+      expect(find.text('Política de privacidad'), findsOneWidget);
+      expect(find.text('Términos y condiciones'), findsOneWidget);
     });
   });
 

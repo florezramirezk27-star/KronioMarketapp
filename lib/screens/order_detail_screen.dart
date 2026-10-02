@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../models/order.dart';
 import '../theme/app_colors.dart';
 import '../utils/format.dart';
-import '../widgets/brand_header.dart';
 import '../widgets/checkout_scope.dart';
 
 /// Detalle de un pedido, con su estado de seguimiento.
@@ -75,7 +74,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BrandHeader(logoSize: 24, showName: false),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: Text(order == null ? 'Pedido' : 'Pedido #${order.numericId}'),
       ),
       body: order == null

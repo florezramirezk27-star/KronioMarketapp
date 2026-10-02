@@ -28,6 +28,7 @@ class ProductGrid extends StatefulWidget {
     this.header,
     this.physics,
     this.onOpenCatalog,
+    this.showFooter = false,
   });
 
   final CatalogController controller;
@@ -38,6 +39,13 @@ class ProductGrid extends StatefulWidget {
 
   /// Se pasa al footer para su enlace "Catalogo".
   final VoidCallback? onOpenCatalog;
+
+  /// Si `true`, muestra el pie de pagina al final del grid.
+  ///
+  /// Por defecto `false`: el footer solo va en la pestana de Inicio. En la
+  /// pestana de Catalogo sobra porque ya hay chips de categoria y el usuario
+  /// no necesita los enlaces de navegacion al final de la lista.
+  final bool showFooter;
 
   @override
   State<ProductGrid> createState() => _ProductGridState();
@@ -151,9 +159,11 @@ class _ProductGridState extends State<ProductGrid> {
             SliverToBoxAdapter(child: _Footer(controller: controller)),
 
             // Pie de pagina de la tienda, debajo de todo el catalogo.
-            SliverToBoxAdapter(
-              child: AppFooter(onOpenCatalog: widget.onOpenCatalog),
-            ),
+            // Solo se muestra si [showFooter] es true (pestana de Inicio).
+            if (widget.showFooter)
+              SliverToBoxAdapter(
+                child: AppFooter(onOpenCatalog: widget.onOpenCatalog),
+              ),
           ],
         );
       },

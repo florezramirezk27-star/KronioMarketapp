@@ -6,7 +6,6 @@ import '../controllers/auth_controller.dart';
 import '../theme/app_colors.dart';
 import '../utils/format.dart';
 import '../widgets/auth_scope.dart';
-import '../widgets/brand_header.dart';
 import '../widgets/cart_scope.dart';
 
 /// Pantalla de perfil.
@@ -24,7 +23,11 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BrandHeader(logoSize: 24, showName: false),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver',
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text('Mi cuenta'),
       ),
       body: ListView(
