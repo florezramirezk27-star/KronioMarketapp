@@ -12,10 +12,28 @@ import 'package:http/http.dart' as http;
 /// el usuario. Con estas clases cada pantalla puede decidir que texto mostrar y
 /// si tiene sentido ofrecer "Reintentar".
 sealed class ApiException implements Exception {
-  const ApiException(this.message, {this.statusCode, this.uri});
+  const ApiException(
+    this.message, {
+    this.statusCode,
+    this.uri,
+    this.serverMessage,
+  });
 
   /// Mensaje listo para mostrar al usuario final, en espanol.
   final String message;
+
+  /// Texto crudo que devolvio el servidor, sin traducir.
+  ///
+  /// Lo necesita el checkout porque sus errores **no se distinguen por codigo
+  /// HTTP sino por texto**: el backend responde `400` tanto para "tu carrito
+  /// está vacío" como para "Error de validación", y cada caso pide una accion
+  /// distinta en la UI (revisar el carrito contra corregir la direccion).
+  /// Sin el texto original solo se puede pintar "La peticion no es valida",
+  /// que no le dice nada a nadie.
+  ///
+  /// Se guarda aparte de [message] justamente para que traducir nunca destruya
+  /// el dato original.
+  final String? serverMessage;
 
   /// Codigo HTTP, cuando la falla viene de una respuesta del servidor.
   final int? statusCode;
@@ -48,17 +66,32 @@ class ApiTimeoutException extends ApiException {
 
 /// El servidor respondio 5xx. El problema es del backend.
 class ApiServerException extends ApiException {
-  const ApiServerException(super.message, {super.statusCode, super.uri});
+  const ApiServerException(
+    super.message, {
+    super.statusCode,
+    super.uri,
+    super.serverMessage,
+  });
 }
 
 /// El servidor respondio 4xx (distinto de 404). El problema es la peticion.
 class ApiClientException extends ApiException {
-  const ApiClientException(super.message, {super.statusCode, super.uri});
+  const ApiClientException(
+    super.message, {
+    super.statusCode,
+    super.uri,
+    super.serverMessage,
+  });
 }
 
 /// El recurso pedido no existe (404).
 class ApiNotFoundException extends ApiException {
-  const ApiNotFoundException(super.message, {super.statusCode, super.uri});
+  const ApiNotFoundException(
+    super.message, {
+    super.statusCode,
+    super.uri,
+    super.serverMessage,
+  });
 }
 
 /// La respuesta llego pero no tiene la forma que esperamos.
@@ -66,7 +99,12 @@ class ApiNotFoundException extends ApiException {
 /// Suele indicar un cambio en el contrato del backend o un proxy devolviendo
 /// HTML de error en lugar de JSON. No tiene sentido reintentar.
 class ApiFormatException extends ApiException {
-  const ApiFormatException(super.message, {super.statusCode, super.uri});
+  const ApiFormatException(
+    super.message, {
+    super.statusCode,
+    super.uri,
+    super.serverMessage,
+  });
 }
 
 /// Traduce una excepcion de `http`/`dart:io` a un [ApiException] con mensaje
@@ -117,9 +155,24 @@ ApiException mapStatusCode(int statusCode, {Uri? uri, String? body}) {
   };
 
   return switch (statusCode) {
-    404 => ApiNotFoundException(message, statusCode: statusCode, uri: uri),
-    >= 500 => ApiServerException(message, statusCode: statusCode, uri: uri),
-    _ => ApiClientException(message, statusCode: statusCode, uri: uri),
+    404 => ApiNotFoundException(
+      message,
+      statusCode: statusCode,
+      uri: uri,
+      serverMessage: detail,
+    ),
+    >= 500 => ApiServerException(
+      message,
+      statusCode: statusCode,
+      uri: uri,
+      serverMessage: detail,
+    ),
+    _ => ApiClientException(
+      message,
+      statusCode: statusCode,
+      uri: uri,
+      serverMessage: detail,
+    ),
   };
 }
 

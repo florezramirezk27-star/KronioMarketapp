@@ -27,6 +27,7 @@ class ApiService {
     CookieJar? cookieJar,
     this.onCookiesChanged,
     this.onUnauthorized,
+    this._requestTimeout,
   }) : _client = client ?? http.Client(),
        _ownsClient = client == null,
        cookieJar = cookieJar ?? CookieJar(),
@@ -39,6 +40,14 @@ class ApiService {
 
   /// `true` si este servicio creo el cliente y por lo tanto debe cerrarlo.
   final bool _ownsClient;
+
+  /// Timeout de cada peticion. `null` usa [AppConfig.requestTimeout].
+  ///
+  /// Existe como parametro, y no como constante, para que un test pueda
+  /// provocar un timeout en milisegundos en vez de esperar los segundos que
+  /// tarda el valor de produccion. La rama que maneja el timeout del checkout
+  /// ("tu pedido pudo quedar registrado") es justo la que hay que poder probar.
+  final Duration? _requestTimeout;
 
   final String baseUrl;
 
@@ -150,6 +159,44 @@ class ApiService {
     );
   }
 
+  /// `PATCH` con cuerpo JSON.
+  ///
+  /// Lo usa el carrito para cambiar cantidades: el backend expone
+  /// `PATCH /cart/:id` con `{quantity}`, y el checkout necesita dejar el carrito
+  /// del servidor igual al local antes de confirmar.
+  Future<dynamic> patchJson(
+    String path, {
+    Map<String, dynamic>? body,
+    bool allowRefresh = true,
+  }) {
+    final uri = Uri.parse('$baseUrl$path');
+    return _send(
+      method: 'PATCH',
+      uri: uri,
+      body: body,
+      allowRefresh: allowRefresh,
+    );
+  }
+
+  /// `DELETE`, con o sin cuerpo.
+  ///
+  /// Por defecto **no** reintenta tras un 401: un borrado que se reintenta a
+  /// ciegas puede ejecutarse dos veces. [allowRefresh] queda en `false` para que
+  /// la UI decida.
+  Future<dynamic> deleteJson(
+    String path, {
+    Map<String, dynamic>? body,
+    bool allowRefresh = false,
+  }) {
+    final uri = Uri.parse('$baseUrl$path');
+    return _send(
+      method: 'DELETE',
+      uri: uri,
+      body: body,
+      allowRefresh: allowRefresh,
+    );
+  }
+
   /// Hace la peticion, aplica el timeout y devuelve el JSON ya decodificado.
   ///
   /// Cualquier falla se convierte en [ApiException] para que la UI nunca tenga
@@ -187,7 +234,7 @@ class ApiService {
         uri: uri,
         headers: headers,
         body: body,
-      ).timeout(AppConfig.requestTimeout);
+      ).timeout(_requestTimeout ?? AppConfig.requestTimeout);
     } on TimeoutException {
       throw ApiTimeoutException(
         'El servidor tardo demasiado en responder. Intenta de nuevo.',
@@ -239,16 +286,31 @@ class ApiService {
     required Map<String, String> headers,
     Map<String, dynamic>? body,
   }) {
+    final encoded = body == null ? null : jsonEncode(body);
+
     switch (method) {
       case 'POST':
-        return _client.post(
-          uri,
-          headers: headers,
-          body: body == null ? null : jsonEncode(body),
-        );
+        return _client.post(uri, headers: headers, body: encoded);
+      case 'PUT':
+        return _client.put(uri, headers: headers, body: encoded);
+      case 'PATCH':
+        return _client.patch(uri, headers: headers, body: encoded);
+      case 'DELETE':
+        return _client.delete(uri, headers: headers, body: encoded);
+      case 'HEAD':
+        return _client.head(uri, headers: headers);
       case 'GET':
-      default:
         return _client.get(uri, headers: headers);
+      default:
+        // Antes este `default` caia en `_client.get`, o sea que un metodo mal
+        // escrito salia como GET y el backend respondia 404 o, peor, borraba
+        // algo en un GET. Un fallo ruidoso es mejor que un metodo equivocado
+        // en silencio.
+        throw ArgumentError.value(
+          method,
+          'method',
+          'metodo HTTP no soportado por ApiService',
+        );
     }
   }
 

@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../services/cart_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/auth_scope.dart';
 import '../widgets/brand_header.dart';
 import '../widgets/product_image.dart';
 import '../utils/format.dart';
 import '../widgets/cart_scope.dart';
+import 'checkout_screen.dart';
 
 /// Carrito de compras.
 ///
@@ -313,7 +315,7 @@ class _CheckoutBar extends StatelessWidget {
                 onPressed: hasUnavailable
                     ? null
                     : () => _startCheckout(context),
-                child: const Text('Proceder al pago'),
+                child: const Text('Confirmar pedido'),
               ),
             ),
           ],
@@ -322,16 +324,20 @@ class _CheckoutBar extends StatelessWidget {
     );
   }
 
-  void _startCheckout(BuildContext context) {
-    // El checkout real todavia no existe: el backend exige JWT y el flujo de
-    // pago no esta implementado. Se avisa en vez de simular una compra.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'El pago todavia no esta disponible. Tu carrito quedo guardado.',
-        ),
-      ),
-    );
+  Future<void> _startCheckout(BuildContext context) async {
+    // El checkout exige sesion: el backend toma el carrito del servidor por
+    // `userId`, asi que sin cookie el pedido se crearia con el carrito de otro
+    // o con ninguno. Se pide iniciar sesion antes de abrir el formulario, y no
+    // despues, porque el formulario pide nombre y correo que vienen del perfil.
+    final auth = AuthScope.of(context);
+    if (!auth.isAuthenticated) {
+      final loggedIn = await Navigator.of(context).pushNamed<bool>('/login');
+      if (loggedIn != true) return;
+    }
+
+    if (!context.mounted) return;
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const CheckoutScreen()));
   }
 }
 

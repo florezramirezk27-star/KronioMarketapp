@@ -10,6 +10,7 @@ import 'theme/app_theme.dart';
 import 'widgets/auth_scope.dart';
 import 'widgets/cart_scope.dart';
 import 'widgets/catalog_scope.dart';
+import 'widgets/checkout_scope.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -114,7 +115,12 @@ class _AppScopeHostState extends State<_AppScopeHost> {
           cart: boot.cart,
           child: AuthScope(
             auth: boot.auth,
-            child: CatalogScope(catalog: boot.catalog, child: widget.child),
+            child: CatalogScope(
+              catalog: boot.catalog,
+              // Va dentro de `AuthScope` a proposito: `CheckoutScope` comparte el
+              // cliente de la sesion, y el orden del arbol lo documenta.
+              child: CheckoutScope(service: boot.checkout, child: widget.child),
+            ),
           ),
         );
       },

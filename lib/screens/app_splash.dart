@@ -9,6 +9,7 @@ import '../controllers/catalog_controller.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/cart_service.dart';
+import '../services/checkout_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/brand_logo.dart';
 
@@ -23,12 +24,22 @@ class AppBootstrap {
     required this.cart,
     required this.auth,
     required this.catalog,
+    required this.checkout,
     this.packageInfo,
   });
 
   final CartService cart;
   final AuthController auth;
   final CatalogController catalog;
+
+  /// Compra y consulta de pedidos.
+  ///
+  /// Comparte el [ApiService] de la sesion ([AuthService.api]) a proposito, y no
+  /// uno nuevo como el catalogo: el checkout necesita la cookie httpOnly y el
+  /// token CSRF que ya estan cargados ahi. Con un cliente aparte, el POST a
+  /// `/orders/checkout` llegaria sin sesion y el backend responderia 401 aunque
+  /// el usuario tenga la sesion iniciada.
+  final CheckoutService checkout;
 
   /// Ya leido en el arranque para que el footer y el perfil no aparezcan con
   /// un "desconocida" en el primer frame. `null` si la plataforma no lo entrego.
@@ -67,6 +78,9 @@ Future<AppBootstrap> loadBootstrap() async {
     cart: results[0] as CartService,
     auth: results[1] as AuthController,
     catalog: catalog,
+    // Se arma con el cliente de la sesion ya resuelto, que es el unico que
+    // tiene la cookie httpOnly. Ver la nota de [AppBootstrap.checkout].
+    checkout: CheckoutService(api: (results[1] as AuthController).service.api),
     packageInfo: results[3] as PackageInfo?,
   );
 }

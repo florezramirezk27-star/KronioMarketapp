@@ -307,7 +307,7 @@ void main() {
       expect(cart.totalItems, 1);
     });
 
-    testWidgets('bloquea el pago si hay productos agotados', (tester) async {
+    testWidgets('bloquea la compra si hay productos agotados', (tester) async {
       final cart = await CartService.load();
       // El producto se guarda con stock 10, luego se marca agotado en memoria.
       await cart.add(_product(stock: 10));
@@ -316,19 +316,21 @@ void main() {
       await _pumpApp(tester, cart, const CartScreen());
 
       final payButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Proceder al pago'),
+        find.widgetWithText(FilledButton, 'Confirmar pedido'),
       );
       expect(payButton.onPressed, isNull);
     });
 
-    testWidgets('permite el pago si no hay productos agotados', (tester) async {
+    testWidgets('permite la compra si no hay productos agotados', (
+      tester,
+    ) async {
       final cart = await CartService.load();
       await cart.add(_product(stock: 10));
 
       await _pumpApp(tester, cart, const CartScreen());
 
       final payButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Proceder al pago'),
+        find.widgetWithText(FilledButton, 'Confirmar pedido'),
       );
       expect(payButton.onPressed, isNotNull);
     });
