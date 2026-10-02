@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../controllers/catalog_controller.dart';
-import '../services/api_exception.dart';
 import '../widgets/brand_header.dart';
 import '../widgets/catalog_scope.dart';
 import '../widgets/category_chips.dart';
@@ -216,7 +216,19 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_tabController.index == 1) {
+          // En Catalogo: back hardware va a Inicio, no sale de la app
+          _tabController.animateTo(0);
+        } else {
+          // En Inicio: salir de la app
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
       appBar: AppBar(
         // Logo y nombre devuelven al inicio. En `HomeScreen` no hay nada que
         // cerrar, asi que tambien sube al primer tab: si estabas en "Catalogo"
@@ -260,7 +272,8 @@ class _HomeScreenState extends State<HomeScreen>
         currentIndex: _navIndex,
         onSelect: _selectDestination,
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -320,50 +333,3 @@ class _CatalogTabState extends State<_CatalogTab>
   }
 }
 
-/// Estado de error a pantalla completa, con accion de reintento.
-///
-/// El boton llama a [CatalogController.retry], que vuelve a pedir los datos.
-/// Antes hacia `setState(() {})` sobre el mismo `Future` ya completado, asi
-/// que el error se quedaba pegado para siempre.
-class CatalogErrorView extends StatelessWidget {
-  const CatalogErrorView({super.key, required this.controller});
-
-  final CatalogController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final error = controller.error;
-    final message = error is ApiException
-        ? error.message
-        : 'Ocurrio un problema al cargar el catalogo.';
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              error is ApiNetworkException ? Icons.wifi_off : Icons.cloud_off,
-              size: 56,
-              color: scheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: controller.canRetry ? controller.retry : null,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Reintentar'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../controllers/catalog_controller.dart';
 import '../models/category.dart';
+import '../services/api_exception.dart';
 import '../theme/app_colors.dart';
 import '../widgets/product_grid.dart';
 import '../widgets/search_field.dart';
-import 'home_screen.dart';
 
 /// Pestana de inicio: banner, categorias circulares y catalogo.
 ///
@@ -79,6 +79,54 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           ),
         );
       },
+    );
+  }
+}
+
+/// Estado de error a pantalla completa, con accion de reintento.
+///
+/// El boton llama a [CatalogController.retry], que vuelve a pedir los datos.
+/// Antes hacia `setState(() {})` sobre el mismo `Future` ya completado, asi
+/// que el error se quedaba pegado para siempre.
+class CatalogErrorView extends StatelessWidget {
+  const CatalogErrorView({super.key, required this.controller});
+
+  final CatalogController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final error = controller.error;
+    final message = error is ApiException
+        ? error.message
+        : 'Ocurrio un problema al cargar el catalogo.';
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              error is ApiNetworkException ? Icons.wifi_off : Icons.cloud_off,
+              size: 56,
+              color: scheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: controller.canRetry ? controller.retry : null,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
