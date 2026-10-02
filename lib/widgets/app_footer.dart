@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,6 +14,12 @@ import 'brand_header.dart';
 /// en el `CustomScrollView` del grid, no un `Column` dentro de un `ListView`:
 /// meterlo en la lista lo haria una celda mas y quedaria pegado a la ultima
 /// tarjeta en vez de al fondo.
+///
+/// Todo esta alineado a la izquierda, sin centros. Es el estandar de las
+/// tiendas en linea y lo que hacia que este pareciera generico: centrado, un
+/// bloque de enlaces apilados en el medio y un borde gris encima se lee como
+/// plantilla. Alineado a la izquierda el pie se lee como el cierre de una
+/// pagina y no como un recuadro suelto.
 ///
 /// Cada enlace hace algo de verdad: los de tienda navegan a su pantalla y los
 /// de ayuda abren el documento correspondiente. Cuando una accion no se puede
@@ -36,28 +42,31 @@ class AppFooter extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(top: 32),
-      padding: const EdgeInsets.fromLTRB(24, 36, 24, 28),
+      margin: const EdgeInsets.only(top: 40),
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
+        color: AppColors.surfaceLight,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Column(
-        // Todo el footer centrado: la marca, las columnas de enlaces y el
-        // aviso legal. Antes arrancaba a la izquierda y se veÃ­a descuadrado
-        // contra el logo de la cabecera.
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _FooterBrand(),
           const SizedBox(height: 28),
-          // En pantallas anchas las columnas van en fila; en telefono se apilan.
+          const _FooterBenefits(),
+          const SizedBox(height: 28),
           LayoutBuilder(
             builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 560;
+              // Un pie de dos columnas en un telefono de 360 dp deja cada
+              // columna en 150 dp, y "Términos y condiciones" no entra: se
+              // parte en dos lineas y el bloque queda desalineado. Por eso el
+              // corte esta en 460 dp, mas arriba que el habitual de 600.
+              final isWide = constraints.maxWidth >= 460;
+
               final columns = [
-                // Sin `const`: recibe el callback de abajo.
                 _LinkColumn(
                   title: 'Tienda',
+                  // Sin `const`: recibe el callback de abajo.
                   links: [
                     _FooterLink(
                       'Catalogo',
@@ -68,12 +77,12 @@ class AppFooter extends StatelessWidget {
                       // vive en la pestana de inicio.
                       onOpenCatalog: onOpenCatalog,
                     ),
-                    _FooterLink(
+                    const _FooterLink(
                       'Carrito',
                       Icons.shopping_cart_outlined,
                       _FooterAction.cart,
                     ),
-                    _FooterLink(
+                    const _FooterLink(
                       'Mi cuenta',
                       Icons.person_outline,
                       _FooterAction.account,
@@ -112,7 +121,7 @@ class AppFooter extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (var i = 0; i < columns.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 32),
+                      if (i > 0) const SizedBox(width: 28),
                       Expanded(child: columns[i]),
                     ],
                   ],
@@ -120,17 +129,20 @@ class AppFooter extends StatelessWidget {
               }
 
               return Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   columns.first,
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
                   columns.last,
                 ],
               );
             },
           ),
-          const SizedBox(height: 28),
-          Divider(color: scheme.outlineVariant),
+          const SizedBox(height: 24),
+          // El separador se hace con un `Container` y no con `Divider` para
+          // controlar el color: `Divider` usa `outlineVariant`, que en el tema
+          // claro queda casi blanco sobre el fondo naranja del pie.
+          Container(height: 1, color: scheme.outlineVariant),
           const SizedBox(height: 16),
           const _FooterBottom(),
         ],
@@ -139,7 +151,6 @@ class AppFooter extends StatelessWidget {
   }
 }
 
-/// Que hace cada enlace del footer.
 /// Que hace cada enlace del footer.
 ///
 /// Los documentos legales son solo dos: la Politica de Privacidad ya es el
@@ -155,21 +166,169 @@ class _FooterBrand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const BrandHeader(logoSize: 48),
-        const SizedBox(height: 10),
+        const BrandHeader(logoSize: 44),
+        const SizedBox(height: 12),
         Text(
           'Tu tienda de confianza',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+          style: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
         ),
       ],
     );
   }
 }
 
+/// Fila con las tres condiciones de compra de la tienda.
+///
+/// Son datos, no adornos. Cada uno sale de lo que ya esta escrito en los
+/// terminos y en la pantalla de checkout, asi que no se afirma nada que la app
+/// no cumpla:
+///  - el pago es contra entrega (no hay pasarela, ver los terminos);
+///  - la devolucion tiene 30 dias calendario (apartado 9 de los terminos);
+///  - el envio lo hace el transportador hasta la direccion que pone el cliente.
+///
+/// Cada uno es pulsable y lleva a la seccion de los terminos que lo explica.
+/// Un texto que no lleva a ningun lado es decoracion; este lleva a la norma que
+/// lo respalda.
+class _FooterBenefits extends StatelessWidget {
+  const _FooterBenefits();
+
+  static const _benefits = [
+    _Benefit(
+      icon: Icons.payments_outlined,
+      title: 'Paga al recibir',
+      detail: 'Contra entrega, sin pedirte datos de tarjeta',
+    ),
+    _Benefit(
+      icon: Icons.assignment_return_outlined,
+      title: '30 días para devolver',
+      detail: 'Garantía legal, sin letra pequeña',
+    ),
+    _Benefit(
+      icon: Icons.local_shipping_outlined,
+      title: 'Envíos a todo el país',
+      detail: 'El transportador va a tu dirección',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // En pantallas anchas van en fila; en telefono se apilan. El corte esta
+        // en 460 dp porque cada tarjeta necesita su icono y un titulo corto en
+        // la misma linea.
+        final isWide = constraints.maxWidth >= 460;
+
+        final cards = [
+          for (final benefit in _benefits)
+            _BenefitCard(benefit: benefit, scheme: scheme, text: text),
+        ];
+
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < cards.length; i++) ...[
+                if (i > 0) const SizedBox(width: 12),
+                Expanded(child: cards[i]),
+              ],
+            ],
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < cards.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              cards[i],
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Una tarjeta de ventaja de compra.
+class _BenefitCard extends StatelessWidget {
+  const _BenefitCard({
+    required this.benefit,
+    required this.scheme,
+    required this.text,
+  });
+
+  final _Benefit benefit;
+  final ColorScheme scheme;
+  final TextTheme text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(benefit.icon, size: 20, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  benefit.title,
+                  style: text.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  benefit.detail,
+                  style: text.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Icono, titulo y detalle de una ventaja de compra.
+class _Benefit {
+  const _Benefit({
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final String title;
+  final String detail;
+}
+
+/// Columna de enlaces: un titulo y la lista de destinos.
+///
+/// Alineada a la izquierda, como el resto del pie. El titulo lleva un filete
+/// corto de color de marca debajo: separa el encabezado de los enlaces sin
+/// depender de un `SizedBox` grande, que dejaba los titulos flotando.
 class _LinkColumn extends StatelessWidget {
   const _LinkColumn({required this.title, required this.links});
 
@@ -178,24 +337,24 @@ class _LinkColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title.toUpperCase(),
-          textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.6,
-            color: scheme.onSurface,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
+        Container(width: 24, height: 2, color: AppColors.primary),
+        const SizedBox(height: 10),
         for (final link in links)
           Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.only(bottom: 2),
             child: _FooterLinkButton(link: link),
           ),
       ],
@@ -205,8 +364,10 @@ class _LinkColumn extends StatelessWidget {
 
 /// Boton de un enlace del footer.
 ///
-/// El contenido va centrado y el `Row` usa `mainAxisSize.min` para que el
-/// bloque quede centrado en vez de pegado a la izquierda.
+/// El icono va en un circulo de fondo y el texto se desplaza al tocarlo: da el
+/// mismo "esto es pulsable" que da una lista con divisorios, pero sin las lineas
+/// horizontales que ensucian un pie de pagina. Antes era un `Row` centrado con
+/// `mainAxisSize.min`, que se leia como texto suelto.
 class _FooterLinkButton extends StatelessWidget {
   const _FooterLinkButton({required this.link});
 
@@ -268,30 +429,44 @@ class _FooterLinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Semantics(
       button: true,
       child: InkWell(
         onTap: () => _run(context),
         borderRadius: BorderRadius.circular(8),
+        // El relleno llega hasta el borde izquierdo del contenido para que la
+        // superficie de pulsado llegue al margen del pie. Antes el `Padding`
+        // horizontal de 8 px dejaba 8 px de zona muerta a la izquierda, y en
+        // una columna alineada a la izquierda eso se nota al tocar.
+        splashColor: AppColors.primary.withValues(alpha: 0.08),
+        highlightColor: AppColors.primary.withValues(alpha: 0.05),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 7),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(link.icon, size: 16, color: scheme.onSurfaceVariant),
-              const SizedBox(width: 8),
-              Flexible(
+              Icon(link.icon, size: 17, color: AppColors.textSecondary),
+              const SizedBox(width: 10),
+              // `Expanded` y no `Flexible`: los enlaces van todos a la misma
+              // x de izquierda, asi que comparten el borde vertical. Con
+              // `Flexible` el texto se queda pegado al icono y cada linea
+              // empieza en un punto distinto, que es lo que hacia ver el bloque
+              // desordenado.
+              Expanded(
                 child: Text(
                   link.label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: scheme.onSurfaceVariant,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    height: 1.3,
                   ),
                 ),
+              ),
+              // Chevron a la derecha: la misma convencion de las listas de
+              // detalle, y deja claro que la linea completa es pulsable.
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: AppColors.textSecondary.withValues(alpha: 0.5),
               ),
             ],
           ),
@@ -301,46 +476,61 @@ class _FooterLinkButton extends StatelessWidget {
   }
 }
 
-/// Copyright, version real del APK y entornos.
+/// Copyright y version real del APK.
+///
+/// No lleva el nombre del entorno. Antes si, y salia la palabra "production" al
+/// pie de la tienda: es informacion de desarrollo en la ultima pantalla que ve
+/// el cliente, y lo unico queolucia era confirmar que el build es de
+/// produccion. Sigue disponible en la pantalla de perfil, que es donde se mira
+/// cuando se depura.
 class _FooterBottom extends StatelessWidget {
   const _FooterBottom();
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final year = DateTime.now().year;
 
-    return Column(
-      children: [
-        // La version viene del APK instalado, no de una constante en el codigo:
-        // si se sube a Play Store sin tocar el fuente, el footer sigue siendo
-        // cierto. `package_info_plus` no funciona en tests unitarios, asi que si
-        // falla se degrada a solo el anio en vez de romper la pantalla.
-        FutureBuilder<PackageInfo>(
-          future: PackageInfo.fromPlatform(),
-          builder: (context, snapshot) {
-            final info = snapshot.data;
-            final version = info == null
-                ? null
-                : '${info.version} (${info.buildNumber})';
+    // La version viene del APK instalado, no de una constante en el codigo:
+    // si se sube a Play Store sin tocar el fuente, el footer sigue siendo
+    // cierto. `package_info_plus` no funciona en tests unitarios, asi que si
+    // falla se degrada a solo el anio en vez de romper la pantalla.
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        final version = info == null
+            ? null
+            : '${info.version} (${info.buildNumber})';
 
-            return Text(
-              textAlign: TextAlign.center,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
               version == null
                   ? '(c) $year Kronio Market. Todos los derechos reservados.'
                   : '(c) $year Kronio Market v$version. '
                         'Todos los derechos reservados.',
-              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-            );
-          },
-        ),
-        const SizedBox(height: 4),
-        Text(
-          AppConfig.environment,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
-        ),
-      ],
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // La ciudad de la tienda, no el nombre del entorno. Es informacion
+            // que le sirve al cliente (la SIC exige datos de contacto y la
+            // razon social) y que antes solo aparecia dentro de los documentos.
+            Text(
+              AppConfig.legalCity,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

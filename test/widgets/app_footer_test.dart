@@ -304,49 +304,165 @@ void main() {
     expect(ayuda.dx, greaterThan(tienda.dx), reason: 'deben ir lado a lado');
   });
 
-  // El footer se centro porque antes arrancaba a la izquierda y se veia
-  // descuadrado contra el logo de la cabecera.
-  testWidgets('la marca y las columnas quedan centradas', (tester) async {
+  // El footer se alineó a la izquierda. Antes estaba centrado, que es
+  // precisamente lo que lo hacia ver como plantilla: los footers de las tiendas
+  // en linea arrancan a la izquierda. Estos tests fijan esa decision para que
+  // nadie vuelva a centrarlo "porque se ve mas limpio".
+  testWidgets('la marca y las columnas arrancan a la izquierda', (
+    tester,
+  ) async {
     await _pumpFooter(tester, width: 400);
 
-    final footerCenter = tester.getRect(find.byType(AppFooter)).center.dx;
+    final footerLeft = tester.getRect(find.byType(AppFooter)).left;
+    final ancho = tester.getRect(find.byType(AppFooter)).width;
 
-    // La marca: logo y nombre van centrados como bloque.
+    // El margen del pie son 20 dp, asi que el contenido arranca 20 px mas a la
+    // derecha que el borde del contenedor.
+    final contenidoIzq = footerLeft + 20;
+
     final marca = tester.getRect(find.byType(BrandHeader));
     expect(
-      marca.center.dx,
-      closeTo(footerCenter, 1),
-      reason: 'la marca debe quedar centrada',
+      marca.left,
+      closeTo(contenidoIzq, 1),
+      reason: 'la marca debe arrancar en el margen izquierdo',
     );
 
-    // Las dos columnas. Se mide el titulo de cada una, que es lo que define
-    // el ancho del bloque.
+    // Los titulos de las columnas, que es lo que define su bloque.
     for (final titulo in ['TIENDA', 'AYUDA']) {
       expect(
-        tester.getRect(find.text(titulo)).center.dx,
-        closeTo(footerCenter, 1),
-        reason: 'la columna "$titulo" debe quedar centrada',
+        tester.getRect(find.text(titulo)).left,
+        closeTo(contenidoIzq, 1),
+        reason: 'la columna "$titulo" debe arrancar en el margen izquierdo',
+      );
+    }
+
+    // Y la marca no debe ocupar el ancho completo, que es lo que hacia alinear
+    // al centro. El umbral es 75% porque `BrandHeader` mide el nombre con
+    // `FittedBox` y reserva el ancho disponible; lo que importa es que el
+    // bloque arranque en el margen, no en el centro.
+    expect(marca.right, lessThan(footerLeft + ancho * 0.75));
+  });
+
+  testWidgets('cada enlace arranca en el mismo borde izquierdo', (
+    tester,
+  ) async {
+    // Todos los enlaces comparten el borde vertical. Con `Flexible` en vez de
+    // `Expanded` el texto se pegaba al icono y cada linea empezaba en un punto
+    // distinto, que es lo que hacia ver el bloque desordenado.
+    await _pumpFooter(tester, width: 400);
+
+    final contenidoIzq = tester.getRect(find.byType(AppFooter)).left + 20;
+
+    for (final etiqueta in ['Catalogo', 'Carrito', 'Mi cuenta']) {
+      final fila = find.ancestor(
+        of: find.text(etiqueta),
+        matching: find.byType(Row),
+      );
+      final rect = tester.getRect(fila);
+
+      expect(
+        rect.left,
+        closeTo(contenidoIzq, 1),
+        reason: '"$etiqueta" debe arrancar en el margen izquierdo',
       );
     }
   });
 
-  testWidgets('cada enlace es un bloque centrado', (tester) async {
+  group('ventajas de compra', () {
+    // Los tres datos de compra. Cada uno sale de lo que ya dicen los terminos,
+    // asi que no se afirma nada que la app no cumpla.
+    testWidgets('muestra las tres condiciones reales de compra', (
+      tester,
+    ) async {
+      await _pumpFooter(tester);
+
+      expect(find.text('Paga al recibir'), findsOneWidget);
+      expect(find.text('30 días para devolver'), findsOneWidget);
+      expect(find.text('Envíos a todo el país'), findsOneWidget);
+    });
+
+    // El detalle importa mas que el titulo: "paga al recibir" sin mas podria
+    // ser cualquier cosa. El texto deja claro que no se piden datos de tarjeta,
+    // que es lo que un comprador Colombian va a leer como señal de confianza.
+    testWidgets('aclara que no se piden datos de tarjeta', (tester) async {
+      await _pumpFooter(tester);
+
+      expect(
+        find.text('Contra entrega, sin pedirte datos de tarjeta'),
+        findsOneWidget,
+      );
+    });
+
+    // Reclamo obligatorio de la Ley 1480: sin el aviso en la pantalla donde se
+    // compra, el consumidor no puede saber que existen esos 30 dias.
+    testWidgets('el plazo de devolucion es el de la garantia legal', (
+      tester,
+    ) async {
+      await _pumpFooter(tester);
+
+      expect(find.textContaining('30 días'), findsWidgets);
+    });
+
+    // Un pie de 400 dp tiene que apilar las tarjetas: en fila, cada una
+    // quedaria en ~120 dp y "Envíos a todo el país" se partiria en dos lineas.
+    testWidgets('en telefono las ventajas se apilan', (tester) async {
+      await _pumpFooter(tester, width: 400);
+
+      final pagas = tester.getTopLeft(find.text('Paga al recibir')).dy;
+      final treinta = tester.getTopLeft(find.text('30 días para devolver')).dy;
+      final envios = tester.getTopLeft(find.text('Envíos a todo el país')).dy;
+
+      expect(treinta, greaterThan(pagas));
+      expect(envios, greaterThan(treinta));
+    });
+
+    testWidgets('en pantalla ancha las ventajas van en fila', (tester) async {
+      await _pumpFooter(tester, width: 700);
+
+      final pagas = tester.getRect(find.text('Paga al recibir'));
+      final envios = tester.getRect(find.text('Envíos a todo el país'));
+
+      // Misma altura vertical: comparten fila.
+      expect(pagas.top, closeTo(envios.top, 1));
+      expect(envios.left, greaterThan(pagas.left));
+    });
+  });
+
+  group('el pie no muestra datos de desarrollo', () {
+    // "production" al pie de la tienda es informacion de desarrollo en la
+    // ultima pantalla que ve el cliente. Se quito de aqui, pero sigue en la
+    // pantalla de perfil, que es donde se mira al depurar.
+    testWidgets('no muestra el nombre del entorno', (tester) async {
+      await _pumpFooter(tester);
+
+      expect(find.text(AppConfig.environment), findsNothing);
+    });
+
+    // Lo que si se muestra es un dato que le sirve al cliente y que la SIC
+    // exige tener a la vista: la ciudad de la tienda.
+    testWidgets('muestra la ciudad en vez del entorno', (tester) async {
+      await _pumpFooter(tester);
+
+      expect(find.text(AppConfig.legalCity), findsOneWidget);
+    });
+  });
+
+  // Un enlace tiene que tener la misma superficie de pulsado que el resto de la
+  // lista, no solo el texto. Antes el `Padding` horizontal dejaba 8 px de zona
+  // muerta a la izquierda, y con el texto alineado a la izquierda eso se nota.
+  testWidgets('la superficie de pulsado cubre toda la linea', (tester) async {
     await _pumpFooter(tester, width: 400);
 
-    final footerCenter = tester.getRect(find.byType(AppFooter)).center.dx;
+    final contenidoIzq = tester.getRect(find.byType(AppFooter)).left + 20;
 
-    // Se mide el `Row` del enlace (icono + texto) y no solo el texto: el texto
-    // va corrido a la derecha porque el icono ocupa 16px a su izquierda, asi
-    // que medir solo el texto daria un falso negativo.
-    final fila = find.ancestor(
-      of: find.text('Contacto'),
-      matching: find.byType(Row),
+    final pulsable = tester.getRect(
+      find.ancestor(of: find.text('Contacto'), matching: find.byType(InkWell)),
     );
 
     expect(
-      tester.getRect(fila).center.dx,
-      closeTo(footerCenter, 1),
-      reason: 'el enlace debe quedar centrado, no pegado a la izquierda',
+      pulsable.left,
+      closeTo(contenidoIzq, 1),
+      reason: 'la zona pulsable no debe dejar margen muerto a la izquierda',
     );
   });
 }
