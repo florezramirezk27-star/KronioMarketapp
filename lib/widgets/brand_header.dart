@@ -69,11 +69,34 @@ class BrandHeader extends StatelessWidget {
             children: [
               logo,
               const SizedBox(width: 8),
+              // `FittedBox` con `scaleDown` en vez de `TextOverflow.ellipsis`.
+              //
+              // En el `AppBar` de `HomeScreen` el nombre compite con tres
+              // botones de accion (buscar, carrito, cuenta), asi que el ancho
+              // disponible es el que queda. Con elipsis el nombre salia
+              // cortado a "Kronio Mark...", que es justo lo que el usuario
+              // reporto: no decia la tienda.
+              //
+              // `scaleDown` le da al `Text` restricciones sin limite (Flutter
+              // devuelve `BoxConstraints()` vacias para este caso), asi que se
+              // mide a su tamano natural y despues se reduce lo justo para
+              // caber. El nombre sale completo siempre; solo se hace mas
+              // pequeno cuando hace falta. La alternativa de bajarle la
+              // tipografia fija lo dejaba pequeno para siempre, incluso con
+              // espacio de sobra.
+              //
+              // `maxLines: 1` evita que en un espacio estrecho se parta en dos
+              // lineas, que se lee peor que una version un poco mas chica.
               Flexible(
-                child: Text(
-                  'Kronio Market',
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Kronio Market',
+                    maxLines: 1,
+                    softWrap: false,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],

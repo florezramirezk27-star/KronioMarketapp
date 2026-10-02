@@ -116,10 +116,15 @@ Future<PackageInfo?> _readPackageInfo() async {
   }
 }
 
-/// Pantalla de bienvenida: logo, nombre y eslogan de la marca.
+/// Pantalla de bienvenida: solo el logo y el nombre de la marca.
 ///
 /// Se muestra mientras [loadBootstrap] resuelve, para que el usuario vea la
 /// marca en vez de una pantalla en blanco.
+///
+///lleva el eslogan ni el `CircularProgressIndicator` que tenia antes, a
+/// pedido: el nombre de la tienda se lee de un vistazo y sin ruido. Eso deja
+/// la carga invisible durante el arranque, que dura lo que el catalogo y la
+/// sesion tarden en responder.
 ///
 /// Usa colores fijos en vez de los del tema a proposito: tiene que ser igual
 /// que el splash nativo de Android (`launch_background.xml` y
@@ -145,20 +150,6 @@ class BrandSplash extends StatelessWidget {
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Tu tienda de confianza',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-            ),
-            SizedBox(height: 40),
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: AppColors.primary,
               ),
             ),
           ],
