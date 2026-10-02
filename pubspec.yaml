@@ -16,11 +16,11 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-# El `+2002` es el `versionCode` de Android y esta por encima del 2001 que ya
+# El `+2003` es el `versionCode` de Android y esta por encima del 2002
 # estaba instalado en el telefono: instalar por encima de un `versionCode` mayor
 # falla con `INSTALL_FAILED_VERSION_DOWNGRADE`. Android no deja bajar
-# `versionCode`, asi que subirió con cada build hasta superarlo.
-version: 1.0.0+2003
+# `versionCode`, asi que sube con cada build hasta superarlo.
+version: 1.0.0+2004
 
 environment:
   sdk: ^3.13.2
