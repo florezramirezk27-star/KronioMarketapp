@@ -89,6 +89,28 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  /// Inicia sesion con Google usando el flujo web del backend.
+  ///
+  /// Lanza el navegador, espera el deep link con el codigo de intercambio y
+  /// completa la sesion. Devuelve `true` si la sesion quedo iniciada.
+  Future<bool> signInWithGoogle() async {
+    _busy = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final user = await service.signInWithGoogle();
+      _user = user;
+      _status = AuthStatus.authenticated;
+      return true;
+    } on Exception catch (e) {
+      _error = e.toString().replaceFirst('Exception: ', '');
+      return false;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
   /// Limpia el error para que no se arrastre a otra pantalla.
   void clearError() {
     if (_error == null) return;

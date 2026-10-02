@@ -229,51 +229,51 @@ class _HomeScreenState extends State<HomeScreen>
         }
       },
       child: Scaffold(
-      appBar: AppBar(
-        // Logo y nombre devuelven al inicio. En `HomeScreen` no hay nada que
-        // cerrar, asi que tambien sube al primer tab: si estabas en "Catalogo"
-        // y tocas la marca, vuelves a "Inicio".
-        title: BrandHeader(onTap: _goToFirstTab),
-        // Solo la busqueda. El carrito y el perfil pasaron a la barra inferior:
-        // repetirlos aqui seria mostrar el mismo destino dos veces, y con tres
-        // botones de accion el nombre de la marca se aprieta (ya se veia).
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'Buscar',
-            onPressed: _openSearch,
-          ),
-          const SizedBox(width: 4),
-        ],
+        appBar: AppBar(
+          // Logo y nombre devuelven al inicio. En `HomeScreen` no hay nada que
+          // cerrar, asi que tambien sube al primer tab: si estabas en "Catalogo"
+          // y tocas la marca, vuelves a "Inicio".
+          title: BrandHeader(onTap: _goToFirstTab),
+          // Solo la busqueda. El carrito y el perfil pasaron a la barra inferior:
+          // repetirlos aqui seria mostrar el mismo destino dos veces, y con tres
+          // botones de accion el nombre de la marca se aprieta (ya se veia).
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: 'Buscar',
+              onPressed: _openSearch,
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            // Cada tab conserva su propio scroll y su posicion al alternar entre
+            // ellas: sin esto, `TabBarView` destruye la tab que sale de pantalla
+            // y al volver hay que recargarla y volver arriba del todo.
+            HomeTab(
+              key: const PageStorageKey('home-tab'),
+              controller: _catalog,
+              onSearch: _openSearch,
+              onOpenCategory: _openCategory,
+              onOpenOffers: _openOffers,
+              onOpenCatalog: _openCatalog,
+            ),
+            _CatalogTab(
+              key: const PageStorageKey('catalog-tab'),
+              controller: _catalog,
+              onSearch: _openSearch,
+              onOpenCatalog: _openCatalog,
+            ),
+          ],
+        ),
+        bottomNavigationBar: HomeBottomNav(
+          currentIndex: _navIndex,
+          onSelect: _selectDestination,
+        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // Cada tab conserva su propio scroll y su posicion al alternar entre
-          // ellas: sin esto, `TabBarView` destruye la tab que sale de pantalla
-          // y al volver hay que recargarla y volver arriba del todo.
-          HomeTab(
-            key: const PageStorageKey('home-tab'),
-            controller: _catalog,
-            onSearch: _openSearch,
-            onOpenCategory: _openCategory,
-            onOpenOffers: _openOffers,
-            onOpenCatalog: _openCatalog,
-          ),
-          _CatalogTab(
-            key: const PageStorageKey('catalog-tab'),
-            controller: _catalog,
-            onSearch: _openSearch,
-            onOpenCatalog: _openCatalog,
-          ),
-        ],
-      ),
-      bottomNavigationBar: HomeBottomNav(
-        currentIndex: _navIndex,
-        onSelect: _selectDestination,
-      ),
-    ),
-  );
+    );
   }
 }
 
@@ -332,4 +332,3 @@ class _CatalogTabState extends State<_CatalogTab>
     );
   }
 }
-

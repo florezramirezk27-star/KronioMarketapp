@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/user.dart';
 import 'api_exception.dart';
@@ -30,6 +32,18 @@ class AuthService {
 
   /// Clave donde se serializa el cookie jar.
   static const sessionKey = 'kronio_session_v1';
+
+  /// Stream de deep links para recibir el callback de Google OAuth.
+  ///
+  /// Se usa `BroadcastStreamController` para que multiples listeners puedan
+  /// suscribirse. La app se suscribe antes de abrir el navegador y se
+  /// desuscribe cuando recibe el codigo o hace timeout.
+  static final _deepLinkController = StreamController<Uri>.broadcast();
+
+  static Stream<Uri> get _deepLinkStream => _deepLinkController.stream;
+
+  /// Notifica un deep link recibido (se llama desde `main.dart`).
+  static void handleDeepLink(Uri uri) => _deepLinkController.add(uri);
 
   static Future<AuthService> create({
     http.Client? client,
@@ -145,6 +159,79 @@ class AuthService {
     }
     api.cookieJar.clear();
     await _persistCookies();
+  }
+
+  /// Inicia sesion con Google usando el flujo web del backend.
+  ///
+  /// Flujo:
+  ///  1. Abre `/auth/google` en el navegador (o pestaña personalizada).
+  ///  2. El usuario se autentica con Google.
+  ///  3. El backend procesa el callback y redirige a `kronio://auth/google/callback?code=...`
+  ///  4. La app recibe el deep link, extrae el `code` y lo cambia por token en `/auth/exchange`.
+  ///
+  /// Requiere que el esquema `kronio` este registrado en Android/iOS.
+  Future<User> signInWithGoogle() async {
+    // Completer que se resuelve cuando llega el deep link con el codigo.
+    final completer = Completer<String>();
+
+    // Stream subscription para escuchar el deep link.
+    late final StreamSubscription<Uri> sub;
+
+    // Timeout de seguridad: si en 3 minutos no vuelve, falla.
+    final timeout = Timer(const Duration(minutes: 3), () {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          Exception('Timeout: no se recibio el callback de Google a tiempo.'),
+        );
+      }
+    });
+
+    sub = _deepLinkStream.listen(
+      (uri) {
+        if (uri.scheme == 'kronio' &&
+            uri.host == 'auth' &&
+            uri.pathSegments.contains('google') &&
+            uri.queryParameters['code'] != null) {
+          final code = uri.queryParameters['code']!;
+          if (!completer.isCompleted) completer.complete(code);
+          sub.cancel();
+          timeout.cancel();
+        }
+      },
+      onError: (e) {
+        if (!completer.isCompleted) completer.completeError(e);
+        sub.cancel();
+        timeout.cancel();
+      },
+    );
+
+    // Abre la URL de inicio de Google OAuth del backend.
+    final authUrl = '${api.baseUrl}/auth/google';
+    final launched = await launchUrl(
+      Uri.parse(authUrl),
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!launched) {
+      sub.cancel();
+      timeout.cancel();
+      throw Exception('No se pudo abrir el navegador para Google Sign-In.');
+    }
+
+    // Espera el codigo que llega por deep link.
+    final code = await completer.future;
+
+    // Cambia el codigo por token de acceso y sesion.
+    final body = await _guarded(
+      () => api.postJson(
+        '/auth/exchange',
+        body: {'code': code},
+        allowRefresh: false,
+      ),
+      onUnauthorized: 'El codigo de Google ha expirado. Intenta de nuevo.',
+    );
+
+    return _parseUser(body);
   }
 
   void dispose() => api.dispose();

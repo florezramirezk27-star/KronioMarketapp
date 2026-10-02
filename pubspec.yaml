@@ -48,6 +48,10 @@ dependencies:
   # repetir '1.0.0' a mano, que se desincroniza en cuanto se publica algo.
   package_info_plus: ^9.0.1
   url_launcher: ^6.3.2
+  # Google Sign-In para OAuth con el backend
+  google_sign_in: ^6.2.2
+  # Deep links para callbacks de OAuth (Google, etc.)
+  app_links: ^6.3.0
 
 dev_dependencies:
   flutter_test:

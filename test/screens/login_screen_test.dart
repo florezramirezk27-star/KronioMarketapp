@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kronio_app/controllers/auth_controller.dart';
 import 'package:kronio_app/screens/login_screen.dart';
 import 'package:kronio_app/services/auth_service.dart';
+import 'package:kronio_app/widgets/auth_form.dart';
 import 'package:kronio_app/widgets/auth_scope.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -64,6 +65,13 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Correo o contrasena incorrectos.'), findsOneWidget);
+    // El error aparece en dos lugares: el AuthErrorBanner y el GoogleSignInButton.
+    // Usamos find.byWidgetPredicate para ser mas especificos y encontrar el del banner.
+    final errorFinder = find.byWidgetPredicate(
+      (w) =>
+          w is AuthErrorBanner &&
+          w.message == 'Correo o contrasena incorrectos.',
+    );
+    expect(errorFinder, findsOneWidget);
   });
 }

@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import 'screens/app_splash.dart';
 import 'screens/cart_screen.dart';
 import 'screens/home_screen.dart';
@@ -102,6 +106,38 @@ class _AppScopeHost extends StatefulWidget {
 
 class _AppScopeHostState extends State<_AppScopeHost> {
   late final Future<AppBootstrap> _bootstrap = loadBootstrap();
+  StreamSubscription<Uri>? _uriSub;
+  final _appLinks = AppLinks();
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  @override
+  void dispose() {
+    _uriSub?.cancel();
+    super.dispose();
+  }
+
+  void _initDeepLinks() async {
+    // 1) URI inicial si la app se lanzo por deep link
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      if (initialUri != null) {
+        AuthService.handleDeepLink(initialUri);
+      }
+    } catch (_) {
+      // getInitialLink puede fallar en algunas plataformas; se ignora.
+    }
+
+    // 2) Stream de URIs mientras la app esta corriendo
+    _uriSub = _appLinks.uriLinkStream.listen(
+      (uri) => AuthService.handleDeepLink(uri),
+      onError: (err) => debugPrint('app_links error: $err'),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
