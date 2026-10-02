@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../controllers/catalog_controller.dart';
@@ -41,16 +43,86 @@ class _HomeScreenState extends State<HomeScreen>
     vsync: this,
   );
 
-  CatalogController get _catalog =>
-      widget.controller ?? CatalogScope.of(context);
+  /// Controller del arbol de widgets, cacheado para poder consultarlo desde el
+  /// listener de [_tabController].
+  ///
+  /// El getter [CatalogController.get] usa `CatalogScope.of(context)`, que
+  /// llama a `dependOnInheritedWidgetOfExactType`. Eso solo es valido mientras
+  /// se construye, asi que desde un listener (que corre en un `setState` del
+  /// `TabController`, no en un `build`) hay que usar el valor ya resuelto.
+  ///
+  /// El `??=` importa: `didChangeDependencies` corre tambien cuando cambia el
+  /// `MediaQuery`, y volver a pedir el scope ahi registra una dependencia
+  /// fuera de un `build`.
+  CatalogController? _catalogDelArbol;
+
+  CatalogController get _catalog => widget.controller ?? _catalogDelArbol!;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Volver al Inicio tiene que quitar el filtro de categoria.
+    //
+    // Las dos pestanas comparten un `CatalogController`, y el filtro vive
+    // dentro de el. Antes no habia nada que lo limpiara al cambiar de pestana:
+    // se entraba a una categoria, se volvia al Inicio y la lista seguia
+    // mostrando solo los productos de esa categoria. Y en el Inicio no hay
+    // chips de categoria, asi que tampoco habia forma visible de quitarlo:
+    // el usuario quedaba atrapado en un filtro que no habia pedido ahi.
+    //
+    // Se limpia al *llegar* al Inicio y no en `_openCatalog`, asi que da igual
+    // como se llegue: tocando la pestana, deslizando, o con el logo.
+    _tabController.addListener(_limpiarFiltroEnInicio);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (widget.controller == null) {
+      _catalogDelArbol ??= CatalogScope.of(context);
+    }
+  }
+
+  void _limpiarFiltroEnInicio() {
+    // Se usa el getter y no [_catalogDelArbol] para que tambien funcione con el
+    // controller inyectado (tests). Solo toca `dependOnInheritedWidgetOfExactType`
+    // si el de verdad vino del arbol, y ese ya quedo cacheado en
+    // `didChangeDependencies`, que corre antes de que el usuario pueda tocar
+    // nada.
+    final catalog = _catalog;
+    if (_tabController.index != 0) return;
+    if (catalog.categoryId == null) return;
+
+    // `setCategory(null)` ya es idempotente (si el filtro no cambio, no hace
+    // nada), asi que el listener puede dispararse varias veces durante la
+    // animacion de la pestana sin disparar varias peticiones.
+    unawaited(catalog.setCategory(null));
+  }
 
   @override
   void dispose() {
+    _tabController.removeListener(_limpiarFiltroEnInicio);
     _tabController.dispose();
     // Solo se destruye el que esta pantalla creo. El del arbol lo destruye
     // `_AppScopeHost` cuando la app se cierra.
     widget.controller?.dispose();
     super.dispose();
+  }
+
+  /// Entra a una categoria.
+  ///
+  /// Aplica el filtro **y** cambia a la pestana Catalogo. Alli el filtro se ve
+  /// (el chip de la categoria queda marcado) y se puede quitar tocando
+  /// "Todos", que no existe en el Inicio. Entrar a una categoria desde el
+  /// Inicio sin cambiar de pestana dejaba al usuario con una lista filtrada y
+  /// sin ninguna seña de por que.
+  void _openCategory(String categoryId) {
+    unawaited(_catalog.setCategory(categoryId));
+    if (_tabController.index != 1) {
+      _tabController.animateTo(1);
+    }
   }
 
   void _openSearch() {
@@ -114,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen>
             key: const PageStorageKey('home-tab'),
             controller: _catalog,
             onSearch: _openSearch,
-            onOpenCategory: (id) => _catalog.setCategory(id),
+            onOpenCategory: _openCategory,
             onOpenCatalog: _openCatalog,
           ),
           _CatalogTab(

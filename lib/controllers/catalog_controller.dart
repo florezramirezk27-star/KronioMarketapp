@@ -170,9 +170,16 @@ class CatalogController extends ChangeNotifier {
       if (requestId != _requestId) return;
 
       final productsResult = results[0] as PaginatedResult<Product>;
+
+      // Cuando no se pidieron categorias (porque ya las hay) se conserva la
+      // lista actual. Ojo: no se devuelve `_categories` directamente como
+      // fallback, porque abajo se hace `_categories..clear()..addAll(...)` y
+      // `clear()` sobre la misma lista que se va a rellenar la deja vacia
+      // para siempre. Eso se ve como "la tira de categorias desaparece al
+      // entrar a una categoria", y ya no volvia ni refrescando. Se copia.
       final categoriesResult = results.length > 1
           ? results[1] as List<Category>
-          : _categories;
+          : List<Category>.of(_categories);
 
       _products
         ..clear()
