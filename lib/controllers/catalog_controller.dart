@@ -40,6 +40,7 @@ class CatalogController extends ChangeNotifier {
 
   String _search = '';
   String? _categoryId;
+  bool _saleOnly = false;
 
   /// Peticion en vuelo. Permite ignorar respuestas de requests ya descartados
   /// (por ejemplo si el usuario cambia de categoria mientras carga).
@@ -47,14 +48,12 @@ class CatalogController extends ChangeNotifier {
 
   // --------------------------------------------------------------- Getters
 
-  List<Product> get products => List.unmodifiable(_products);
   List<Category> get categories => List.unmodifiable(_categories);
 
   LoadStatus get status => _status;
   ApiException? get error => _error;
   bool get canRetry => _canRetry;
 
-  int get total => _total;
   int get page => _page;
   int get totalPages => _totalPages;
   bool get hasMore => _page < _totalPages;
@@ -62,13 +61,51 @@ class CatalogController extends ChangeNotifier {
   bool get isEmpty => _status == LoadStatus.ready && _products.isEmpty;
 
   /// `true` si la lista vacia se debe a filtros, no a un catalogo vacio.
-  bool get isFiltered => _search.isNotEmpty || _categoryId != null;
+  bool get isFiltered => _search.isNotEmpty || _categoryId != null || _saleOnly;
 
   bool get isLoadingMore => _loadingMore;
   String? get loadingMoreError => _loadingMoreError;
 
   String get search => _search;
   String? get categoryId => _categoryId;
+  bool get saleOnly => _saleOnly;
+
+  /// Productos ya cargados, sin ningun filtro aplicado.
+  ///
+  /// Lo usa el banner de ofertas de la home y **no** puede usar [products]: ese
+  /// getter ya viene filtrado, asi que con el filtro de ofertas puesto el
+  /// banner contaria como ofertas justamente los productos que el filtro dejo
+  /// pasar, y diria "tienes 3 ofertas" cuando el filtro esta puesto a proposito.
+  /// El banner tiene que ofrecer las ofertas de verdad que hay, no el recorte
+  /// que el usuario eligio.
+  List<Product> get loadedProducts => List.unmodifiable(_products);
+
+  /// Productos que se muestran, ya con el filtro de ofertas aplicado.
+  ///
+  /// El filtro vive en el getter y no en [_products] a proposito: [_products]
+  /// guarda lo que trajo el servidor, que con el filtro puesto es la pagina
+  /// entera. Ver la nota de [setSaleOnly] para por que se filtra aqui.
+  List<Product> get products => List.unmodifiable(
+    _saleOnly ? _products.where((p) => p.hasDiscount) : _products,
+  );
+
+  /// Total que se le ensena al usuario.
+  ///
+  /// Con el filtro de ofertas puesto se cuenta sobre los productos ya cargados
+  /// y no sobre el `total` del servidor, porque ese cuenta el catalogo completo
+  /// (2 de cuyos 5 productos no tienen descuento real). Sin esto la pantalla de
+  /// ofertas decia "3 de 5" y parecian faltar productos.
+  int get total => _saleOnly ? _discountedCount : _total;
+
+  /// Cuantos de los productos cargados tienen descuento real.
+  ///
+  /// Se compara `oldPrice > price`, no "tiene `oldPrice`". Hay productos en el
+  /// catalogo cuyo precio **subio** (un reloj a $269.000 con referencia de
+  /// $219.900): su `oldPrice` no es `null`, asi que el filtro del backend
+  /// (`oldPrice IS NOT NULL`) los cuenta como oferta, pero no lo son. Marcar
+  /// como rebajado un producto cuyo precio subio es una mentira al consumidor, y
+  /// por eso el filtro se hace aqui y no solo en el servidor.
+  int get _discountedCount => _products.where((p) => p.hasDiscount).length;
 
   // -------------------------------------------------------------- Acciones
 
@@ -104,6 +141,25 @@ class CatalogController extends ChangeNotifier {
     if (value == _categoryId) return;
     _categoryId = value;
     await _fetch(reset: true);
+  }
+
+  /// Muestra solo los productos con descuento real.
+  ///
+  /// No vuelve a pedir la pagina: el filtro se aplica sobre [_products] en el
+  /// getter [products]. Es exactamente igual que el de busqueda del servidor en
+  /// cuanto a que se resuelve al instante, pero sin red.
+  ///
+  /// **Limitacion conocida:** el backend tiene un parametro `?onSale=true` que
+  /// aplica `oldPrice IS NOT NULL`, y ya funciona en el codigo local, pero
+  /// **no esta desplegado**: en produccion se ignora y devuelve el catalogo
+  /// completo. Por eso el filtro se hace del lado del cliente. Cuando se
+  /// despliegue, hay que pasar el parametro en `ApiService.fetchProducts` y
+  /// quitar el `where` de aqui, porque el del servidor no distingue un
+  /// descuento real de un precio que subio.
+  Future<void> setSaleOnly(bool value) async {
+    if (value == _saleOnly) return;
+    _saleOnly = value;
+    notifyListeners();
   }
 
   /// Trae la pagina siguiente. No hace nada si ya se llego al final o si hay

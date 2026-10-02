@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:kronio_app/widgets/brand_logo.dart';
-import 'package:kronio_app/widgets/cart_button.dart';
+import 'package:kronio_app/widgets/home_bottom_nav.dart';
 // main.dart real: usa la KronioApp tal cual la usa la app.
 import 'package:kronio_app/main.dart' as app;
 
@@ -20,8 +20,12 @@ import 'package:kronio_app/main.dart' as app;
 ///
 /// La via que si funciona es [WidgetTester.runAsync], que ejecuta el callback
 /// fuera de la zona de reloj simulado y deja que las promesas de verdad
-/// resuelvan. Por eso se busca el `CartButton` de `HomeScreen`: existe solo si
-/// el bootstrap ya termino.
+/// resuelvan. Por eso se busca la [HomeBottomNav]: existe solo si el bootstrap
+/// ya termino y se pinto `HomeScreen`.
+///
+/// Antes se buscaba el `CartButton` del `AppBar`. Ese boton salio del `AppBar`
+/// cuando el carrito paso a la barra inferior, asi que buscarlo ahi ya no
+/// significa "el bootstrap termino": siempre daria falso.
 ///
 /// Tambien sirve para no dejar el timer de 20 s de `loadBootstrap` pendiente,
 /// que hace fallar el test aunque todo lo demas este bien.
@@ -32,12 +36,23 @@ Future<void> _esperarArranque(WidgetTester tester) async {
     );
     await tester.pump();
 
-    if (find.byType(CartButton).evaluate().isNotEmpty) return;
+    if (find.byType(HomeBottomNav).evaluate().isNotEmpty) return;
   }
 
   fail(
     'La app no arranco: el bootstrap no llego a pintar HomeScreen. '
     'Sigo viendo el splash.',
+  );
+}
+
+/// Destino "Carrito" de la barra inferior.
+///
+/// Va acotado a [HomeBottomNav] porque `Icons.shopping_bag_outlined` no es un
+/// icono exclusivo de la barra.
+Finder _carritoEnLaBarra() {
+  return find.descendant(
+    of: find.byType(HomeBottomNav),
+    matching: find.byIcon(Icons.shopping_bag_outlined),
   );
 }
 
@@ -60,9 +75,9 @@ void main() {
     await _esperarArranque(tester);
 
     // Salta la pantalla de bienvenida; el carrito ya esta hidratado.
-    expect(find.byType(CartButton), findsOneWidget);
+    expect(find.byType(HomeBottomNav), findsOneWidget);
 
-    await tester.tap(find.byType(CartButton));
+    await tester.tap(_carritoEnLaBarra());
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -74,7 +89,7 @@ void main() {
     await tester.pumpWidget(const app.KronioApp());
     await _esperarArranque(tester);
 
-    await tester.tap(find.byType(CartButton));
+    await tester.tap(_carritoEnLaBarra());
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);

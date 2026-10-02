@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../controllers/catalog_controller.dart';
 import '../models/category.dart';
 import '../theme/app_colors.dart';
-import '../widgets/brand_logo.dart';
 import '../widgets/product_grid.dart';
+import '../widgets/search_field.dart';
 import 'home_screen.dart';
 
 /// Pestana de inicio: banner, categorias circulares y catalogo.
@@ -19,12 +19,16 @@ class HomeTab extends StatefulWidget {
     required this.controller,
     required this.onSearch,
     required this.onOpenCategory,
+    required this.onOpenOffers,
     this.onOpenCatalog,
   });
 
   final CatalogController controller;
   final VoidCallback onSearch;
   final void Function(String categoryId) onOpenCategory;
+
+  /// Abre el catalogo filtrado a las ofertas.
+  final VoidCallback onOpenOffers;
 
   /// Se reenvia al footer. En esta pestana no es un no-op: desde el pie de la
   /// pestana "Inicio", "Catalogo" tiene que cambiar de pestana.
@@ -69,6 +73,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
               controller: controller,
               onSearch: widget.onSearch,
               onOpenCategory: widget.onOpenCategory,
+              onOpenOffers: widget.onOpenOffers,
             ),
           ),
         );
@@ -82,11 +87,15 @@ class _HomeHeader extends StatelessWidget {
     required this.controller,
     required this.onSearch,
     required this.onOpenCategory,
+    required this.onOpenOffers,
   });
 
   final CatalogController controller;
   final VoidCallback onSearch;
   final void Function(String categoryId) onOpenCategory;
+
+  /// Abre el catalogo con el filtro de ofertas puesto.
+  final VoidCallback onOpenOffers;
 
   @override
   Widget build(BuildContext context) {
@@ -94,29 +103,56 @@ class _HomeHeader extends StatelessWidget {
         .where((c) => c.productCount > 0)
         .toList();
 
+    // Se cuentan sobre `loadedProducts` y no sobre `products`: el segundo
+    // getter ya viene filtrado, asi que con un filtro puesto el banner
+    // contaria como ofertas solo lo que el filtro dejo pasar.
+    final offers = controller.loadedProducts
+        .where((p) => p.hasDiscount)
+        .toList();
+    final bestDiscount = offers.isEmpty
+        ? 0
+        : offers.map((p) => p.discountPercent).reduce((a, b) => a > b ? a : b);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: _WelcomeBanner(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: SearchField(onTap: onSearch),
         ),
+
+        // El banner desaparece si no hay nada que ofrecer, en vez de quedarse
+        // con "0 productos en oferta". Un bloque vacio con un boton que no
+        // lleva a ninguna parte es peor que no mostrarlo.
+        if (offers.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _OffersBanner(
+              count: offers.length,
+              bestDiscount: bestDiscount,
+              onTap: onOpenOffers,
+            ),
+          ),
+        ],
+
+        if (categories.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: _SectionTitle(title: 'Categorias'),
+          ),
+          const SizedBox(height: 12),
+          _CategoriesStrip(categories: categories, onTap: onOpenCategory),
+        ],
+
         const SizedBox(height: 24),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _SectionTitle(
-            title: 'Categorias',
-            trailing: categories.isEmpty
-                ? null
-                : '${categories.length} disponibles',
+            title: 'Productos',
+            trailing: '${controller.total} disponibles',
           ),
-        ),
-        const SizedBox(height: 12),
-        _CategoriesStrip(categories: categories, onTap: onOpenCategory),
-        const SizedBox(height: 24),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
-          child: _SectionTitle(title: 'Productos'),
         ),
         const SizedBox(height: 8),
       ],
@@ -124,38 +160,141 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-class _WelcomeBanner extends StatelessWidget {
-  const _WelcomeBanner();
+/// Banner de ofertas.
+///
+/// Todos los numeros salen de los productos: cuantos hay con descuento y cual
+/// es el mejor porcentaje. No hay cuenta regresiva ni "-50%" de adorno, porque
+/// en este catalogo los tres descuentos son del 13% y poner un 40% seria
+/// decirle al cliente una mentira que el catalogo contradice a un toque.
+class _OffersBanner extends StatelessWidget {
+  const _OffersBanner({
+    required this.count,
+    required this.bestDiscount,
+    required this.onTap,
+  });
+
+  final int count;
+  final int bestDiscount;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    // En singular cambia la frase: "1 producto con descuento" y no
+    // "1 productos con descuento".
+    final headline = count == 1
+        ? '1 producto con descuento'
+        : '$count productos con descuento';
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.primary, AppColors.primaryLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const BrandLogo(size: 56),
-          const SizedBox(height: 12),
-          Text(
-            'Bienvenido a Kronio',
-            style: Theme.of(context).textTheme.titleLarge
-                ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.sell_outlined,
+                        size: 13,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'EN OFERTA',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  headline,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    height: 1.2,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Hasta $bestDiscount% de descuento. Paga al recibir.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.92),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // Boton blanco sobre el naranja: es el unico elemento del banner
+                // con contraste propio, y asi se lee como la accion principal
+                // sin sacar el banner de su color de marca.
+                Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  child: InkWell(
+                    onTap: onTap,
+                    borderRadius: BorderRadius.circular(22),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 9,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Ver ofertas',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Icon(
+                            Icons.arrow_forward,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Los mejores productos con descuentos',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
-          ),
-        ],
+        ),
       ),
     );
   }

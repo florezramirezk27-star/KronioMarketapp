@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../controllers/catalog_controller.dart';
 import '../services/api_exception.dart';
-import '../theme/app_colors.dart';
 import '../widgets/brand_header.dart';
-import '../widgets/cart_button.dart';
 import '../widgets/catalog_scope.dart';
 import '../widgets/category_chips.dart';
+import '../widgets/home_bottom_nav.dart';
 import '../widgets/product_grid.dart';
+import '../widgets/sale_filter_bar.dart';
+import '../widgets/search_field.dart';
 import 'home_tab.dart';
 import 'search_screen.dart';
 
@@ -58,22 +59,33 @@ class _HomeScreenState extends State<HomeScreen>
 
   CatalogController get _catalog => widget.controller ?? _catalogDelArbol!;
 
+  /// Destino marcado en la barra inferior: 0 Inicio, 1 Catalogo, 2 Carrito,
+  /// 3 Perfil.
+  ///
+  /// No es lo mismo que [_tabController.index]: el Carrito y el Perfil no son
+  /// pestanas, se empujan encima. Por eso hace falta un indice aparte que
+  /// tambien los cubre. Si se usara el indice de las pestanas, tocar "Carrito"
+  /// dejaria "Inicio" marcado abajo mientras se mira el carrito, que es
+  /// justo la confusion que hace una barra inferior inutil.
+  int _navIndex = 0;
+
   @override
   void initState() {
     super.initState();
 
-    // Volver al Inicio tiene que quitar el filtro de categoria.
+    // Volver al Inicio tiene que quitar los filtros.
     //
-    // Las dos pestanas comparten un `CatalogController`, y el filtro vive
-    // dentro de el. Antes no habia nada que lo limpiara al cambiar de pestana:
-    // se entraba a una categoria, se volvia al Inicio y la lista seguia
-    // mostrando solo los productos de esa categoria. Y en el Inicio no hay
-    // chips de categoria, asi que tampoco habia forma visible de quitarlo:
+    // Las dos pestanas comparten un `CatalogController`, y los filtros viven
+    // dentro de el. Antes no habia nada que los limpiara al cambiar de
+    // pestana: se entraba a una categoria, se volvia al Inicio y la lista
+    // seguia mostrando solo los productos de esa categoria. Y en el Inicio no
+    // hay chips de categoria, asi que tampoco habia forma visible de quitarlo:
     // el usuario quedaba atrapado en un filtro que no habia pedido ahi.
     //
     // Se limpia al *llegar* al Inicio y no en `_openCatalog`, asi que da igual
     // como se llegue: tocando la pestana, deslizando, o con el logo.
     _tabController.addListener(_limpiarFiltroEnInicio);
+    _tabController.addListener(_sincronizarBarraInferior);
   }
 
   @override
@@ -85,6 +97,14 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  /// Al deslizar entre pestanas, la barra tiene que seguir al usuario.
+  void _sincronizarBarraInferior() {
+    final fromTab = _tabController.index;
+    if (fromTab > 1) return;
+    if (_navIndex == fromTab) return;
+    setState(() => _navIndex = fromTab);
+  }
+
   void _limpiarFiltroEnInicio() {
     // Se usa el getter y no [_catalogDelArbol] para que tambien funcione con el
     // controller inyectado (tests). Solo toca `dependOnInheritedWidgetOfExactType`
@@ -93,12 +113,22 @@ class _HomeScreenState extends State<HomeScreen>
     // nada.
     final catalog = _catalog;
     if (_tabController.index != 0) return;
-    if (catalog.categoryId == null) return;
 
-    // `setCategory(null)` ya es idempotente (si el filtro no cambio, no hace
-    // nada), asi que el listener puede dispararse varias veces durante la
-    // animacion de la pestana sin disparar varias peticiones.
-    unawaited(catalog.setCategory(null));
+    // `setCategory` y `setSaleOnly` ya son idempotentes, asi que llamarlas
+    // varias veces durante la animacion de la pestana no dispara peticiones de
+    // mas. Van sin `await` a proposito: el listener corre en cada tick de la
+    // animacion del swipe, y esperar aqui bloquearia el listener.
+    if (catalog.categoryId != null) {
+      unawaited(catalog.setCategory(null));
+    }
+
+    // El filtro de ofertas se limpia tambien. El Inicio es el catalogo
+    // completo por definicion, igual que con las categorias: si no, el banner
+    // de ofertas y la lista harian cosas distintas y el usuario no tendria
+    // forma de volver a ver el catalogo entero sin irse a la otra pestana.
+    if (catalog.saleOnly) {
+      unawaited(catalog.setSaleOnly(false));
+    }
   }
 
   @override
@@ -147,6 +177,43 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  /// Boton "Ver ofertas" del banner de la home.
+  ///
+  /// Pone el filtro de ofertas y salta al catalogo. Sin esto el boton seria una
+  /// promesa sin destino: llevaria al catalogo completo y el usuario no veria
+  /// las ofertas que el banner le acaba de prometer.
+  void _openOffers() {
+    BrandHeader.goHome(context);
+    unawaited(_catalog.setSaleOnly(true));
+    if (_tabController.index != 1) {
+      _tabController.animateTo(1);
+    }
+  }
+
+  /// Destino tocado en la barra inferior.
+  ///
+  /// Inicio y Catalogo son las pestanas; Carrito y Perfil se empujan encima y
+  /// al volver la barra tiene que seguir marking la pestana de la que se salio,
+  /// asi que el indice se queda en el ultimo destino de pestana.
+  void _selectDestination(int index) {
+    switch (index) {
+      case 0:
+        BrandHeader.goHome(context);
+        if (_tabController.index != 0) _tabController.animateTo(0);
+
+      case 1:
+        _openCatalog();
+
+      case 2:
+        setState(() => _navIndex = 2);
+        Navigator.of(context).pushNamed('/cart');
+
+      case 3:
+        setState(() => _navIndex = 3);
+        Navigator.of(context).pushNamed('/profile');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -155,26 +222,17 @@ class _HomeScreenState extends State<HomeScreen>
         // cerrar, asi que tambien sube al primer tab: si estabas en "Catalogo"
         // y tocas la marca, vuelves a "Inicio".
         title: BrandHeader(onTap: _goToFirstTab),
+        // Solo la busqueda. El carrito y el perfil pasaron a la barra inferior:
+        // repetirlos aqui seria mostrar el mismo destino dos veces, y con tres
+        // botones de accion el nombre de la marca se aprieta (ya se veia).
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
             tooltip: 'Buscar',
             onPressed: _openSearch,
           ),
-          const CartButton(),
-          IconButton(
-            icon: const Icon(Icons.account_circle_outlined),
-            tooltip: 'Mi cuenta',
-            onPressed: () => Navigator.of(context).pushNamed('/profile'),
-          ),
+          const SizedBox(width: 4),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Inicio'),
-            Tab(text: 'Catalogo'),
-          ],
-        ),
       ),
       body: TabBarView(
         controller: _tabController,
@@ -187,6 +245,7 @@ class _HomeScreenState extends State<HomeScreen>
             controller: _catalog,
             onSearch: _openSearch,
             onOpenCategory: _openCategory,
+            onOpenOffers: _openOffers,
             onOpenCatalog: _openCatalog,
           ),
           _CatalogTab(
@@ -196,6 +255,10 @@ class _HomeScreenState extends State<HomeScreen>
             onOpenCatalog: _openCatalog,
           ),
         ],
+      ),
+      bottomNavigationBar: HomeBottomNav(
+        currentIndex: _navIndex,
+        onSelect: _selectDestination,
       ),
     );
   }
@@ -230,57 +293,29 @@ class _CatalogTabState extends State<_CatalogTab>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Column(
-      children: [
-        _SearchField(onTap: widget.onSearch),
-        CategoryChips(controller: widget.controller),
-        Expanded(
-          child: ProductGrid(
-            controller: widget.controller,
-            onOpenCatalog: widget.onOpenCatalog,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Campo de busqueda decorativo que abre la pantalla de busqueda.
-class _SearchField extends StatelessWidget {
-  const _SearchField({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          height: 46,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceLight,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.search, color: AppColors.textSecondary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Buscar productos...',
-                  style: const TextStyle(color: AppColors.textSecondary),
-                  overflow: TextOverflow.ellipsis,
-                ),
+    // El TabBarView mantiene viva esta pestana, pero si el controller cambia
+    // (p. ej. filtro de ofertas) el contenido tiene que reconstruirse. Usamos
+    // AnimatedBuilder para escuchar al controller directamente.
+    return AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) {
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: SearchField(onTap: widget.onSearch),
+            ),
+            CategoryChips(controller: widget.controller),
+            SaleFilterBar(controller: widget.controller),
+            Expanded(
+              child: ProductGrid(
+                controller: widget.controller,
+                onOpenCatalog: widget.onOpenCatalog,
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

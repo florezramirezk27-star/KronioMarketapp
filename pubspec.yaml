@@ -20,7 +20,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # estaba instalado en el telefono: instalar por encima de un `versionCode` mayor
 # falla con `INSTALL_FAILED_VERSION_DOWNGRADE`. Android no deja bajar
 # `versionCode`, asi que sube con cada build hasta superarlo.
-version: 1.0.0+2004
+version: 1.0.0+2005
 
 environment:
   sdk: ^3.13.2

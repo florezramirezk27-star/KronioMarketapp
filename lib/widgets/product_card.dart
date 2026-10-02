@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/product.dart';
 import '../screens/product_detail_screen.dart';
+import '../services/cart_service.dart';
 import '../theme/app_colors.dart';
 import '../utils/format.dart';
+import 'cart_scope.dart';
 import 'product_image.dart';
 
 /// Tarjeta de producto para el grid del catalogo.
@@ -20,6 +22,12 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+
+    // `maybeOf` y no `of`: hay tarjetas que se montan sin carrito (en tests y en
+    // cualquier previsualizacion aislada). Con `of` se revienta el arbol entero
+    // por un boton que es opcional. Sin carrito no se muestra el boton de
+    // anadir y la tarjeta sigue sirviendo para mirar el producto.
+    final cart = CartScope.maybeOf(context);
 
     return Material(
       color: theme.colorScheme.surface,
@@ -70,6 +78,10 @@ class ProductCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                    ],
+                    if (cart != null && product.isAvailable) ...[
+                      const SizedBox(height: 8),
+                      _AddToCartButton(product: product, cart: cart),
                     ],
                   ],
                 ),
@@ -170,6 +182,90 @@ class ProductCard extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Boton de "Anadir" que aparece en la tarjeta cuando hay carrito.
+///
+/// Es un `Material` propio y no un `TextButton` suelto porque el `InkWell` de la
+/// tarjeta lo envuelve: sin un `Material` intermedio el ripple del boton se
+/// dibuja sobre el fondo de la tarjeta y al tocar se ven dos ondas a la vez.
+///
+/// La tarjeta tambien abre el detalle, y los dos gestos no se disparan a la
+/// vez: en el arena de reconocedores gana el mas interno, o sea que el boton se
+/// lleva el toque y la tarjeta no lo ve.
+///
+/// Aqui se agrega siempre **una** unidad. La pantalla de detalle es la que
+/// tiene el selector de cantidad, y ponerlo en cada tarjeta del grid no vale
+/// la pena.
+class _AddToCartButton extends StatelessWidget {
+  const _AddToCartButton({required this.product, required this.cart});
+
+  final Product product;
+  final CartService cart;
+
+  Future<void> _add(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final added = await cart.add(product);
+    if (!context.mounted) return;
+
+    if (!added) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('El producto ya no esta disponible')),
+      );
+      return;
+    }
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('Producto agregado al carrito'),
+        action: SnackBarAction(
+          label: 'Ver carrito',
+          onPressed: () => navigator.pushNamed('/cart'),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _add(context),
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.primary),
+          ),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_shopping_cart_outlined,
+                  size: 15,
+                  color: AppColors.primary,
+                ),
+                SizedBox(width: 6),
+                Text(
+                  'Anadir',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

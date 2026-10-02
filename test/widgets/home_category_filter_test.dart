@@ -10,6 +10,7 @@ import 'package:kronio_app/screens/home_screen.dart';
 import 'package:kronio_app/services/api_service.dart';
 import 'package:kronio_app/services/cart_service.dart';
 import 'package:kronio_app/widgets/cart_scope.dart';
+import 'package:kronio_app/widgets/home_bottom_nav.dart';
 
 /// Backend falso con dos categorias.
 ///
@@ -75,9 +76,29 @@ Future<CatalogController> _cargado() async {
   return controller;
 }
 
+/// Vuelve a la pestana de Inicio tocando la barra inferior.
+///
+/// Antes se tocaba `find.widgetWithText(Tab, 'Inicio')`. Ese `TabBar` ya no
+/// existe: la navegacion se hizo una barra inferior con cuatro destinos, asi
+/// que el mismo gesto ahora es tocar el item "Inicio" de abajo. El punto del
+/// test sigue siendo el mismo: entrar a una categoria y volver sin quedar
+/// filtrado.
 Future<void> _pestanaInicio(WidgetTester tester) async {
-  await tester.tap(find.widgetWithText(Tab, 'Inicio'));
+  await tester.tap(_itemBarra(tester, Icons.home_outlined));
   await tester.pumpAndSettle();
+}
+
+/// Icono de un destino de la barra inferior.
+///
+/// El finder va acotado a [HomeBottomNav] porque `Icons.grid_view_outlined` sale
+/// dos veces en pantalla: en el destino "Catalogo" de la barra y en el enlace
+/// "Catalogo" del pie de pagina. Sin acotar, el tap es ambiguo y el finder
+/// escoge el primero que encuentra, que no es necesariamente el de la barra.
+Finder _itemBarra(WidgetTester tester, IconData icon) {
+  return find.descendant(
+    of: find.byType(HomeBottomNav),
+    matching: find.byIcon(icon),
+  );
 }
 
 void main() {
@@ -176,7 +197,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await _pestanaInicio(tester);
-      await tester.tap(find.widgetWithText(Tab, 'Catalogo'));
+      await tester.tap(_itemBarra(tester, Icons.grid_view_outlined));
       await tester.pumpAndSettle();
 
       expect(controller.categoryId, isNull);
